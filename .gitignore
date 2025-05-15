@@ -1,0 +1,45 @@
+# IDE and editor folders
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Dependency management
+/vendor/
+/node_modules/
+/composer.lock
+/package-lock.json
+
+# Environment files
+.env
+.env.*
+config.php
+*.ini
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Debug files
+debug.php
+debug_*.log
+
+# Temporary files
+*.tmp
+*.cache
+*.bak
+
+# Excluded paths
+/phpmyadmin/ 
