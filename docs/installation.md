@@ -15,8 +15,8 @@ This guide provides step-by-step instructions for setting up the Electric Vehicl
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/ev-rental-system.git
-cd ev-rental-system
+git clone https://github.com/gg918/easy-ev-rental.git
+cd easy-ev-rental
 ```
 
 ### 2. Database Setup
@@ -115,37 +115,77 @@ chmod -R 777 /path/to/ev-rental-system/tmp  # If you have a temp directory
 ### 1. Hardware Requirements
 
 - Arduino Uno R4 WiFi
-- AT6668 GPS module
+- AT6668 GPS SMA module
+- LED Matrix (built into the Arduino R4)
 - Connecting wires
+- Secure enclosure for outdoor use
+- Power supply (5-12V)
 
 ### 2. Wiring
 
 Connect the GPS module to the Arduino:
-- GPS TX → Arduino RX
-- GPS RX → Arduino TX
+- GPS TX → Arduino Digital Pin 3
+- GPS RX → Arduino Digital Pin 4 
 - GPS VCC → Arduino 5V
 - GPS GND → Arduino GND
 
 ### 3. Arduino Code Installation
 
-1. Install the Arduino IDE
-2. Install required libraries:
-   - WiFiNINA (for Arduino R4 WiFi)
-   - TinyGPSPlus (for GPS parsing)
-   - ArduinoHttpClient (for HTTP requests)
+1. Install the Arduino IDE (2.0 or later)
+2. Install required libraries through the Arduino Library Manager:
+   - SoftwareSerial
+   - TinyGPSPlus
+   - ArduinoGraphics
+   - Arduino_LED_Matrix
+   - WiFiS3
+   - ArduinoJson (version 6.x)
 
-3. Upload the tracking code from the `arduino/` directory to your Arduino board.
+3. Open the `arduino/ev_tracker.ino` file from this repository
 
-4. Configure WiFi credentials in the Arduino sketch:
-
+4. Configure the WiFi and server settings in the code:
 ```cpp
-// Replace with your network credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+// WiFi credentials
+const char* ssid       = "YOUR_WIFI_SSID";
+const char* password   = "YOUR_WIFI_PASSWORD";
 
-// Server API endpoint
-const char* serverUrl = "http://your-domain.com/api.php";
+// Server settings
+const char* serverHost = "your-domain.com";  // Change to your actual domain
+const int   serverPort = 80;                 // Default HTTP port
+
+// Device ID (should be unique for each vehicle)
+const char* deviceId   = "1";                // Assign a unique ID
 ```
+
+5. Upload the sketch to your Arduino board
+
+### 4. Testing the Tracker
+
+1. Open the Arduino Serial Monitor (set to 115200 baud)
+2. You should see:
+   - GPS initialization message
+   - WiFi connection status
+   - GPS data when a fix is obtained
+   - Confirmation of data transmission to server
+
+3. The LED matrix will display:
+   - 'G' in green: GPS fix obtained
+   - 'X' in red: No GPS data received
+   - Yellow scrolling dots: Waiting for GPS fix
+
+4. Verify data is being received in the system by:
+   - Checking `debug/arduino_data.log` on the server
+   - Looking for new entries in the Locations database table
+   - Viewing the vehicle on the map interface
+
+### 5. Deployment
+
+1. Place the Arduino in a waterproof case
+2. Ensure the GPS antenna has a clear view of the sky
+3. Connect to a reliable power source (vehicle battery with appropriate voltage regulation)
+4. Mount securely on the vehicle in a protected location
+5. Test the full system in real-world conditions
+
+For detailed Arduino tracker documentation, see [Arduino Tracker Documentation](arduino-tracker.md).
 
 ## Final Steps
 

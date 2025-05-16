@@ -1,10 +1,10 @@
 <?php
 class Database
 {
-    private $host     = "localhost";
-    private $dbname   = "ev_rental_db";
-    private $username = "gianni";
-    private $password = "gianni111";
+    private $host     = "localhost";     // Database host
+    private $dbname   = "ev_rental_db";  // Database name
+    private $username = "db_user";       // Database username - CHANGE THIS
+    private $password = "db_password";   // Database password - CHANGE THIS
     private $charset  = "utf8mb4";
     private $pdo;
     private $error;

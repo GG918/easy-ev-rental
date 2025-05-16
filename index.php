@@ -41,7 +41,6 @@ $formEmail = $_GET['email'] ?? '';
                     <div class="user-menu-content">
                         <a href="#">My Profile</a>
                         <a href="my_reservations.php">My Reservations</a>
-                        <a href="track.php">Track</a>
                         <a href="logout.php">Logout</a>
                     </div>
                 </li>

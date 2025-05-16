@@ -273,6 +273,63 @@ Most API endpoints require authentication. Authentication is performed using ses
 }
 ```
 
+## Location Tracking
+
+### Store Vehicle Location (for trackers)
+
+**Endpoint**: `/store.php`  
+**Method**: POST  
+**Description**: Receives and stores location data from vehicle tracking devices (Arduino).
+**Authentication**: None (protected by device-specific identifiers)
+
+**Request Body**:
+```json
+{
+  "location": {
+    "lat": 53.3811,
+    "lng": -1.4701
+  },
+  "device_id": "1",
+  "speed_mph": 12.5,
+  "battery_level": 85,
+  "status": "in_use"
+}
+```
+
+**Parameters**:
+- `location` (required): Object containing latitude and longitude
+  - `lat` (required): Latitude in decimal degrees
+  - `lng` (required): Longitude in decimal degrees
+- `device_id` (optional): Unique identifier for the vehicle/device (defaults to 1)
+- `speed_mph` (optional): Current speed in miles per hour (defaults to 0.0)
+- `battery_level` (optional): Battery level percentage (defaults to 100)
+- `status` (optional): Vehicle status (defaults to calculated based on speed)
+- `timestamp` (optional): Time of data collection (defaults to server time)
+
+**Response**:
+```json
+{
+  "success": true,
+  "message": "Location data stored successfully",
+  "device_id": "1",
+  "timestamp": "2023-11-15 14:30:00"
+}
+```
+
+**Error Response**:
+```json
+{
+  "success": false,
+  "error": "Database error",
+  "details": "Error message details"
+}
+```
+
+**Notes**:
+- Data from each device is logged in `debug/arduino_data.log` for troubleshooting
+- Vehicle status is automatically determined based on speed if not provided
+- The server timestamp is used if none is provided in the request
+
 ## Error Handling
 
 All API endpoints follow a consistent error response format:

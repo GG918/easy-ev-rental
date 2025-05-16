@@ -1,6 +1,6 @@
 <?php
-// === PHP version to receive and store location into Yunohost database ===
-// Place in my_webapp/public/store.php
+// === PHP endpoint to receive and store location data from Arduino trackers ===
+// Handles data from EV rental tracking devices
 
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
@@ -8,38 +8,71 @@ header("Content-Type: application/json");
 $raw = file_get_contents("php://input");
 $data = json_decode($raw, true);
 
-if (!isset($data['location']['lat'], $data['location']['lng'], $data['timestamp'])) {
+// Log incoming data for debugging
+$log_file = fopen("debug/arduino_data.log", "a");
+fwrite($log_file, date("[Y-m-d H:i:s] ") . $raw . "\n\n");
+fclose($log_file);
+
+// Check for required fields
+if (!isset($data['location']['lat'], $data['location']['lng'])) {
     http_response_code(400);
-    echo json_encode(["error" => "Missing required fields"]);
+    echo json_encode(["error" => "Missing required location fields"]);
     exit;
 }
 
 $lat = floatval($data['location']['lat']);
 $lng = floatval($data['location']['lng']);
-$timestamp_raw = $data['timestamp'];
-$device_id = isset($data['device_id']) ? $data['device_id'] : 'Arduino';
+$device_id = isset($data['device_id']) ? intval($data['device_id']) : 1;
+$speed_mph = isset($data['speed_mph']) ? floatval($data['speed_mph']) : 0.0;
+$battery_level = isset($data['battery_level']) ? intval($data['battery_level']) : 100;
 
-// Ensure timestamp is formatted as yyyy-mm-dd hh:mm:ss
-$date = new DateTime($timestamp_raw);
-$timestamp = $date->format('Y-m-d H:i:s');
+// Set timestamp to current server time if not provided
+$timestamp = isset($data['timestamp']) ? $data['timestamp'] : date('Y-m-d H:i:s');
 
-require_once("Database.php"); // Assuming Database.php is in my_webapp/www/
+// Normalize timestamp format
+if (isset($data['timestamp'])) {
+    $date = new DateTime($timestamp);
+    $timestamp = $date->format('Y-m-d H:i:s');
+}
+
+// Default status based on speed (stationary = available, moving = in_use)
+$status = ($speed_mph < 1.0) ? 'available' : 'in_use';
+if (isset($data['status'])) {
+    $status = $data['status'];
+}
+
+require_once("Database.php");
 
 $db = new Database();
 $pdo = $db->getConnection();
 
-$speed_mph = 0.0;
-$status = 'in_use';
-$battery_level = 100;
+// Create spatial point from coordinates
 $point = "POINT($lng $lat)";
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO Locations (speed_mph, status, location, battery_level, timestamp) VALUES (?, ?, ST_GeomFromText(?), ?, ?)");
-    $stmt->execute([$speed_mph, $status, $point, $battery_level, $timestamp]);
+    // Insert location data
+    $stmt = $pdo->prepare("INSERT INTO Locations (id, speed_mph, status, location, battery_level, timestamp) 
+                          VALUES (?, ?, ?, ST_GeomFromText(?), ?, ?)");
+    $stmt->execute([$device_id, $speed_mph, $status, $point, $battery_level, $timestamp]);
     
-    echo json_encode(["success" => true]);
+    // Return success response
+    echo json_encode([
+        "success" => true,
+        "message" => "Location data stored successfully",
+        "device_id" => $device_id,
+        "timestamp" => $timestamp
+    ]);
+    
 } catch (PDOException $e) {
+    // Log error
+    error_log("Store.php error: " . $e->getMessage());
+    
+    // Return error response
     http_response_code(500);
-    echo json_encode(["error" => $e->getMessage()]);
+    echo json_encode([
+        "success" => false,
+        "error" => "Database error",
+        "details" => $e->getMessage()
+    ]);
 }
 ?>

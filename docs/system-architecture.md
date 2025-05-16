@@ -20,6 +20,7 @@ This document outlines the architecture, components, and data flow within the sy
 - **Microcontroller**: Arduino UNO R4 WiFi
   - Core functionality: Process GPS data and transmit to server
   - WiFi connectivity: IEEE 802.11 b/g/n at 2.4 GHz
+  - Built-in LED Matrix: Visual status indication
 
 - **GPS Module**: AT6668 GPS SMA
   - Positioning accuracy: ≤5m

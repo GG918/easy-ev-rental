@@ -20,8 +20,9 @@ eASY is an Electric Vehicle Rental System built with PHP, JavaScript, and MySQL.
 
 - **Tracking Hardware**
   - Arduino UNO R4 WiFi: Processes GPS data and communicates with server
-  - AT6668 GPS module: Provides real-time location data
+  - AT6668 GPS SMA module: Provides real-time location data
   - Power management systems for energy efficiency
+  - LED Matrix display for status indication
 
 ## Key Features
 
@@ -37,10 +38,13 @@ eASY is an Electric Vehicle Rental System built with PHP, JavaScript, and MySQL.
 Comprehensive documentation is available in the `docs/` directory:
 
 - [Installation Guide](docs/installation.md)
+- [Configuration Guide](docs/configuration.md)
 - [API Documentation](docs/api-documentation.md)
 - [System Architecture](docs/system-architecture.md)
 - [Database Schema](docs/database-schema.md)
 - [Coding Standards](docs/code-standards.md)
+- [Arduino Tracker Documentation](docs/arduino-tracker.md)
+- [Feature Status](docs/feature-status.md)
 
 ## Installation
 
@@ -84,8 +88,9 @@ eASY 是一个使用 PHP、JavaScript 和 MySQL 构建的电动车租赁系统�
 
 - **跟踪硬件**
   - Arduino UNO R4 WiFi：处理 GPS 数据并与服务器通信
-  - AT6668 GPS 模块：提供实时位置数据
+  - AT6668 GPS SMA 模块：提供实时位置数据
   - 电源管理系统，提高能源效率
+  - LED矩阵显示屏，用于状态指示
 
 ## 主要功能
 
@@ -101,10 +106,13 @@ eASY 是一个使用 PHP、JavaScript 和 MySQL 构建的电动车租赁系统�
 详细文档可在 `docs/` 目录中找到：
 
 - [安装指南](docs/installation.md)
+- [配置指南](docs/configuration.md)
 - [API 文档](docs/api-documentation.md)
 - [系统架构](docs/system-architecture.md)
 - [数据库架构](docs/database-schema.md)
 - [编码标准](docs/code-standards.md)
+- [Arduino 跟踪器文档](docs/arduino-tracker.md)
+- [功能状态](docs/feature-status.md)
 
 ## 安装
 

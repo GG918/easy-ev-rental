@@ -82,7 +82,8 @@ Thank you for considering contributing to the eASY Electric Vehicle Rental Syste
 ## Additional Resources
 
 - [Project README](README.md)
-- [Database Documentation](docs/database-doc.md)
-- [API Reference](docs/api-reference.md)
+- [Database Schema Documentation](docs/database-schema.md)
+- [API Documentation](docs/api-documentation.md)
+- [Coding Standards](docs/code-standards.md)
 
 Thank you for contributing to eASY Electric Vehicle Rental System! 
