@@ -2,38 +2,38 @@
 require_once '../../backend/core/auth.php';
 require_once '../../backend/includes/utils.php';
 
-// 检查用户是否已登录
+// Check if the user is already logged in
 $isLoggedIn = isLoggedIn();
 if ($isLoggedIn) {
-    // 如果已登录，重定向到首页
+    // If logged in, redirect to the main page
     header('Location: index.php');
     exit;
 }
 
-// 处理错误消息
+// Handle error messages
 $error = '';
 if (isset($_GET['error'])) {
     switch ($_GET['error']) {
         case 'username_exists':
-            $error = '用户名已存在';
+            $error = 'Username already exists.';
             break;
         case 'password_mismatch':
-            $error = '两次输入的密码不匹配';
+            $error = 'Passwords do not match.';
             break;
         case 'empty_fields':
-            $error = '请填写所有必填字段';
+            $error = 'Please fill in all required fields.';
             break;
         default:
-            $error = '注册时发生错误，请重试';
+            $error = 'An error occurred during registration. Please try again.';
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>注册 - eASY</title>
+    <title>Register - eASY</title>
     <link rel="stylesheet" href="../public/css/index.css">
     <link rel="stylesheet" href="../public/css/auth.css">
 </head>
@@ -42,7 +42,7 @@ if (isset($_GET['error'])) {
         <div class="logo"><a href="/view/index">eASY</a></div>
         <nav class="header">
             <ul>
-                <li><a href="/view/locations">查找车辆</a></li>
+                <li><a href="/view/locations">Find Vehicles</a></li>
             </ul>
         </nav>
     </header>
@@ -50,7 +50,7 @@ if (isset($_GET['error'])) {
     <div class="main-content">
         <div class="auth-container">
             <div class="auth-card">
-                <h2>注册</h2>
+                <h2>Register</h2>
                 
                 <?php if (!empty($error)): ?>
                     <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
@@ -58,32 +58,32 @@ if (isset($_GET['error'])) {
                 
                 <form action="/backend/core/register_process.php" method="post" class="auth-form">
                     <div class="form-group">
-                        <label for="username">用户名</label>
+                        <label for="username">Username</label>
                         <input type="text" id="username" name="username" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="email">电子邮箱</label>
+                        <label for="email">Email</label>
                         <input type="email" id="email" name="email" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="password">密码</label>
+                        <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="confirm_password">确认密码</label>
+                        <label for="confirm_password">Confirm Password</label>
                         <input type="password" id="confirm_password" name="confirm_password" required>
                     </div>
                     
                     <div class="form-actions">
-                        <button type="submit" class="submit-btn">注册</button>
+                        <button type="submit" class="submit-btn">Register</button>
                     </div>
                 </form>
                 
                 <div class="auth-links">
-                    <p>已有账号？<a href="/view/login">登录</a></p>
+                    <p>Already have an account? <a href="/view/login">Login</a></p>
                 </div>
             </div>
         </div>
@@ -91,9 +91,9 @@ if (isset($_GET['error'])) {
 
     <footer>
         <div class="footer-content">
-            <p>&copy; 2025 eASY - 您的可持续出行选择</p>
+            <p>&copy; 2025 eASY - Your sustainable mobility choice</p>
             <div class="footer-nav">
-                <a href="#">帮助</a>
+                <a href="#">Help</a>
             </div>
         </div>
     </footer>

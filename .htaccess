@@ -1,57 +1,35 @@
-# eASY系统配置
+# eASY system configuration
 
-# 启用重写引擎
-RewriteEngine On
-
-# 设置基本URL - 根据实际环境设置
-RewriteBase /
-
-# 防止对真实文件和目录应用规则
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-
-# API请求重写规则
-RewriteRule ^api/([^/]+)/?$ backend/api/api.php?endpoint=$1 [QSA,L]
-RewriteRule ^api/([^/]+)/([^/]+)/?$ backend/api/api.php?endpoint=$1&id=$2 [QSA,L]
-
-# 前端视图重写规则
-RewriteRule ^view/([^/]+)/?$ frontend/views/$1.php [QSA,L]
-
-# 维护模式规则
-# 取消注释以启用维护模式
-# RewriteCond %{REQUEST_URI} !^/maintenance\.php$
-# RewriteRule .* /maintenance.php [L]
-
-# 默认字符集
+# Set default charset
 AddDefaultCharset UTF-8
 
-# 设置默认索引文件
+# Set default index file
 DirectoryIndex index.php
 
-# 禁止访问敏感文件和目录
+# Deny access to sensitive files and directories
 <FilesMatch "(\.env|\.gitignore|composer\.json|package\.json|README\.md)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# 禁止访问隐藏文件
+# Deny access to hidden files
 <FilesMatch "^\.">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# 禁止访问备份和临时文件
+# Deny access to backup and temporary files
 <FilesMatch "\.(bak|sql|log|tmp)$">
     Order allow,deny
     Deny from all
 </FilesMatch>
 
-# 启用GZIP压缩
+# Enable GZIP compression
 <IfModule mod_deflate.c>
     AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json
 </IfModule>
 
-# 设置缓存控制
+# Set cache control
 <IfModule mod_expires.c>
     ExpiresActive On
     ExpiresByType image/jpg "access plus 1 year"
@@ -65,19 +43,10 @@ DirectoryIndex index.php
     ExpiresDefault "access plus 2 days"
 </IfModule>
 
-# 跨域资源共享设置
-<IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-</IfModule>
-
-# 安全标头
+# Security headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-XSS-Protection "1; mode=block"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-</IfModule>
-
-# 错误页面
-ErrorDocument 404 /frontend/views/404.php
-ErrorDocument 500 /frontend/views/500.php 
+</IfModule> 

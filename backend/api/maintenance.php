@@ -1,70 +1,70 @@
 <?php
 /**
- * 维护记录API端点
- * 处理维护记录的添加、完成和获取列表功能
+ * Maintenance Record API Endpoint
+ * Handles adding, completing, and retrieving maintenance records.
  */
 
-// 包含必要文件
+// Include necessary files
 require_once '../core/Database.php';
 require_once '../core/auth.php';
 
-// 设置响应头
+// Set response headers
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
-// 验证用户是否已登录
+// Validate if user is logged in
 if (!isLoggedIn()) {
     http_response_code(401);
     echo json_encode([
         'status' => 'error',
-        'message' => '需要登录后才能访问'
+        'message' => 'Login required to access this resource.'
     ]);
     exit;
 }
 
-// 检查是否为管理员
+// Check if user is admin
 $isAdmin = isAdmin();
 
-// 初始化数据库连接
+// Initialize database connection
 $db = new Database();
 
-// 获取请求方法和路径
+// Get request method and path
 $method = $_SERVER['REQUEST_METHOD'];
 $pathInfo = $_SERVER['PATH_INFO'] ?? '';
 
-// 处理请求
+// Handle request
 try {
     switch ($method) {
         case 'GET':
-            // 获取维护记录列表
+            // Get maintenance records list
             if ($pathInfo === '' || $pathInfo === '/') {
                 getMaintenance();
             } elseif (preg_match('/^\/(\d+)$/', $pathInfo, $matches)) {
-                // 获取特定维护记录
+                // Get specific maintenance record
                 getMaintenanceById($matches[1]);
             } else {
                 http_response_code(404);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '未找到请求的资源'
+                    'message' => 'Requested resource not found.'
                 ]);
             }
             break;
             
         case 'POST':
-            // 添加新维护记录
+            // Add new maintenance record
             if ($pathInfo === '' || $pathInfo === '/') {
                 addMaintenance();
             } elseif (preg_match('/^\/(\d+)\/complete$/', $pathInfo, $matches)) {
-                // 完成维护
+                // Complete maintenance
                 completeMaintenance($matches[1]);
             } else {
                 http_response_code(404);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '未找到请求的资源'
+                    'message' => 'Requested resource not found.'
                 ]);
             }
             break;
@@ -73,21 +73,21 @@ try {
             http_response_code(405);
             echo json_encode([
                 'status' => 'error',
-                'message' => '不支持的请求方法'
+                'message' => 'Unsupported request method.'
             ]);
     }
 } catch (Exception $e) {
     http_response_code(500);
-    error_log("维护API错误: " . $e->getMessage());
+    error_log("Maintenance API Error: " . $e->getMessage());
     echo json_encode([
         'status' => 'error',
-        'message' => '处理请求时发生错误',
+        'message' => 'Error processing request.',
         'details' => $e->getMessage()
     ]);
 }
 
 /**
- * 获取维护记录列表
+ * Get maintenance records list.
  */
 function getMaintenance() {
     global $db;
@@ -110,13 +110,13 @@ function getMaintenance() {
             'data' => $maintenance
         ]);
     } catch (Exception $e) {
-        throw new Exception("获取维护记录失败: " . $e->getMessage());
+        throw new Exception("Failed to get maintenance records: " . $e->getMessage());
     }
 }
 
 /**
- * 获取特定维护记录
- * @param int $id 维护记录ID
+ * Get specific maintenance record.
+ * @param int $id Maintenance record ID.
  */
 function getMaintenanceById($id) {
     global $db;
@@ -138,7 +138,7 @@ function getMaintenanceById($id) {
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
-                'message' => '未找到维护记录'
+                'message' => 'Maintenance record not found.'
             ]);
             return;
         }
@@ -148,27 +148,27 @@ function getMaintenanceById($id) {
             'data' => $maintenance
         ]);
     } catch (Exception $e) {
-        throw new Exception("获取维护记录失败: " . $e->getMessage());
+        throw new Exception("Failed to get maintenance record: " . $e->getMessage());
     }
 }
 
 /**
- * 添加新维护记录
+ * Add new maintenance record.
  */
 function addMaintenance() {
     global $db, $isAdmin;
     
-    // 验证权限 - 只有管理员可以添加维护记录
+    // Validate permission - only admin can add maintenance records
     if (!$isAdmin) {
         http_response_code(403);
         echo json_encode([
             'status' => 'error',
-            'message' => '没有权限执行此操作'
+            'message' => 'Permission denied to perform this action.'
         ]);
         return;
     }
     
-    // 获取和验证请求数据
+    // Get and validate request data
     $vehicle_id = filter_input(INPUT_POST, 'vehicle_id', FILTER_VALIDATE_INT);
     $description = filter_input(INPUT_POST, 'description', FILTER_SANITIZE_STRING);
     $maintenance_date = filter_input(INPUT_POST, 'maintenance_date', FILTER_SANITIZE_STRING);
@@ -177,93 +177,93 @@ function addMaintenance() {
         http_response_code(400);
         echo json_encode([
             'status' => 'error',
-            'message' => '缺少必要的参数'
+            'message' => 'Missing required parameters.'
         ]);
         return;
     }
     
     try {
-        // 检查车辆是否存在
+        // Check if vehicle exists
         $vehicle = $db->fetchOne("SELECT id FROM Locations WHERE id = ? LIMIT 1", [$vehicle_id]);
         
         if (!$vehicle) {
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
-                'message' => '未找到指定的车辆'
+                'message' => 'Specified vehicle not found.'
             ]);
             return;
         }
         
-        // 添加维护记录
+        // Add maintenance record
         $maintenance_id = $db->recordMaintenance($vehicle_id, $description, $maintenance_date);
         
         echo json_encode([
             'status' => 'success',
-            'message' => '维护记录已添加',
+            'message' => 'Maintenance record added successfully.',
             'data' => [
                 'id' => $maintenance_id,
                 'vehicle_id' => $vehicle_id
             ]
         ]);
     } catch (Exception $e) {
-        throw new Exception("添加维护记录失败: " . $e->getMessage());
+        throw new Exception("Failed to add maintenance record: " . $e->getMessage());
     }
 }
 
 /**
- * 完成维护
- * @param int $id 维护记录ID
+ * Complete maintenance.
+ * @param int $id Maintenance record ID.
  */
 function completeMaintenance($id) {
     global $db, $isAdmin;
     
-    // 验证权限 - 只有管理员可以完成维护
+    // Validate permission - only admin can complete maintenance
     if (!$isAdmin) {
         http_response_code(403);
         echo json_encode([
             'status' => 'error',
-            'message' => '没有权限执行此操作'
+            'message' => 'Permission denied to perform this action.'
         ]);
         return;
     }
     
     try {
-        // 获取维护记录
+        // Get maintenance record
         $maintenance = $db->fetchOne("SELECT id, vehicle_id, completed_at FROM maintenance WHERE id = ?", [$id]);
         
         if (!$maintenance) {
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
-                'message' => '未找到维护记录'
+                'message' => 'Maintenance record not found.'
             ]);
             return;
         }
         
-        // 检查是否已完成
+        // Check if already completed
         if ($maintenance['completed_at']) {
             http_response_code(400);
             echo json_encode([
                 'status' => 'error',
-                'message' => '该维护记录已标记为完成'
+                'message' => 'This maintenance record is already marked as completed.'
             ]);
             return;
         }
         
-        // 完成维护
+        // Complete maintenance
         $db->completeMaintenance($id, $maintenance['vehicle_id']);
         
         echo json_encode([
             'status' => 'success',
-            'message' => '维护已标记为完成',
+            'message' => 'Maintenance marked as completed.',
             'data' => [
                 'id' => $id,
                 'vehicle_id' => $maintenance['vehicle_id']
             ]
         ]);
     } catch (Exception $e) {
-        throw new Exception("完成维护失败: " . $e->getMessage());
+        throw new Exception("Failed to complete maintenance: " . $e->getMessage());
     }
 }
 ?> 

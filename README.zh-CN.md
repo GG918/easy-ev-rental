@@ -1,4 +1,4 @@
-[Return to English documentation (返回英文文档)](README.md)
+[Read English Document](README.md)
 
 # eASY 电动汽车租赁系统 (中文版)
 

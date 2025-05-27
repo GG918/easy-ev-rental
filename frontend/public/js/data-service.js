@@ -8,7 +8,7 @@ const DataService = (function() {
     let refreshInterval = null;
     let refreshTimeout = null;
     let dataLoadedCallback = null;
-    let apiEndpoints = ['../../backend/api/legacy_api.php?action=getLatestLocations'];
+    let apiEndpoints = ['/web/backend/api/api.php/vehicles'];
     let retryCount = 0;
     let lastFetchTime = 0;
     
@@ -138,7 +138,7 @@ const DataService = (function() {
             
             try {
                 console.log('Fetching vehicle data...');
-                const endpoint = `${apiEndpoints[0]}&_t=${now}`;
+                const endpoint = `${apiEndpoints[0]}?_t=${now}`;
                 
                 const response = await fetch(endpoint);
                 if (!response.ok) {
@@ -146,10 +146,19 @@ const DataService = (function() {
                     throw new Error(`Server returned error: ${response.status}`);
                 }
                 
-                // Use generic API response handling
-                const data = await UtilService.api.handleResponse(
-                    response, [], 'Failed to fetch vehicle data'
-                );
+                // Parse response data
+                const responseData = await response.json();
+                
+                // Handle RESTful API response format
+                let data = [];
+                if (responseData.status === 'success' && Array.isArray(responseData.data)) {
+                    data = responseData.data;
+                } else if (Array.isArray(responseData)) {
+                    data = responseData; // Fallback for direct array response
+                } else {
+                    console.warn('Unexpected API response format:', responseData);
+                    data = [];
+                }
                 
                 console.log('Vehicle data fetched successfully, data count:', data?.length || 0);
                 

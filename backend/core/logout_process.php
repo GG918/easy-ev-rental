@@ -1,13 +1,14 @@
 <?php
-// 处理注销请求的页面
+// Handle logout request page
 
-// 加载认证函数和工具函数
+// Load authentication functions and utility functions
 require_once 'auth.php';
 require_once '../includes/utils.php';
 
-// 执行注销
+// Execute logout
 $result = logout();
 
-// 重定向到首页
-header('Location: ' . url('/view/index?logout=true'));
+// Redirect to homepage
+// Use url() function for redirection path
+header('Location: ' . url('index', ['logout' => 'true']));
 exit; 

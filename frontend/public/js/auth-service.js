@@ -14,7 +14,10 @@ const AuthService = {
         try {
             const options = {
                 method: method,
-                headers: { 'Content-Type': contentType }
+                headers: { 
+                    'Content-Type': contentType,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             };
             
             // Handle different request body types
@@ -59,9 +62,7 @@ const AuthService = {
      * @returns {boolean} - True if user is authenticated
      */
     isAuthenticated() {
-        return window.state && 
-               window.state.userInfo && 
-               window.state.userInfo.isLoggedIn === true;
+        return window.USER_IS_LOGGED_IN === true;
     },
     
     /**
@@ -72,7 +73,11 @@ const AuthService = {
         if (!this.isAuthenticated()) {
             return null;
         }
-        return window.state.userInfo;
+        return {
+            id: window.USER_ID,
+            username: window.USER_NAME,
+            isLoggedIn: true
+        };
     },
     
     /**
@@ -81,7 +86,7 @@ const AuthService = {
      * @param {string} message - Optional message to display
      * @returns {boolean} - True if authenticated, false if redirected
      */
-    requireAuthentication(redirectUrl = 'index.php', message = 'Please login to continue') {
+    requireAuthentication(redirectUrl = '/web/frontend/views/index.php', message = 'Please login to continue') {
         if (!this.isAuthenticated()) {
             if (typeof ReservationService !== 'undefined') {
                 ReservationService.showErrorNotification('Authentication Required', message);
@@ -90,7 +95,7 @@ const AuthService = {
             }
             
             setTimeout(() => {
-                window.location.href = redirectUrl;
+                window.location.href = redirectUrl + '?show_login=1';
             }, 2000);
             return false;
         }
@@ -104,7 +109,7 @@ const AuthService = {
      * @returns {Promise<Object>} - Login result
      */
     async login(username, password) {
-        return this.sendRequest('../../backend/core/login_process.php', 'POST', { username, password });
+        return this.sendRequest('/web/backend/core/login_process.php', 'POST', { username, password });
     },
     
     /**
@@ -115,7 +120,7 @@ const AuthService = {
      * @returns {Promise<Object>} - Registration result
      */
     async register(username, email, password) {
-        return this.sendRequest('../../backend/core/register_process.php', 'POST', { username, email, password });
+        return this.sendRequest('/web/backend/core/register_process.php', 'POST', { username, email, password });
     },
     
     /**
@@ -124,18 +129,18 @@ const AuthService = {
      */
     async logout() {
         try {
-            const result = await this.sendRequest('../../backend/core/logout_process.php', 'POST');
+            const result = await this.sendRequest('/web/backend/core/logout_process.php', 'POST');
             if (result.success) {
-                window.location.href = 'index.php?logout=true';
+                window.location.href = '/web/frontend/views/index.php?logout=true';
                 return true;
             } else {
                 console.error("Logout error:", result.message);
-                window.location.href = 'index.php?logout=true';
+                window.location.href = '/web/frontend/views/index.php?logout=true';
                 return false;
             }
         } catch (error) {
             console.error("Logout error:", error);
-            window.location.href = 'index.php?logout=true';
+            window.location.href = '/web/frontend/views/index.php?logout=true';
             return false;
         }
     },
@@ -400,7 +405,7 @@ const AuthService = {
 
 // Initialize after page load
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof AuthService.init === 'function') {
+    if (typeof AuthService !== 'undefined' && typeof AuthService.init === 'function') {
         AuthService.init();
     }
 });

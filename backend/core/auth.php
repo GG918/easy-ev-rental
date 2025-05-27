@@ -1,32 +1,32 @@
 <?php
 /**
- * 认证系统核心文件
- * 提供用户认证、授权和会话管理功能
+ * Authentication System Core File
+ * Provides user authentication, authorization, and session management functions.
  */
 
-// 启动会话（如果尚未启动）
+// Start session (if not already started)
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// 加载配置
+// Load configuration
 $config = require_once dirname(__DIR__) . '/config/config.php';
 
-// 确保数据库类可用
+// Ensure Database class is available
 require_once dirname(__DIR__) . '/core/Database.php';
 $db = new Database();
 
 /**
- * 检查用户是否已登录
- * @return bool 是否已登录
+ * Check if the user is logged in.
+ * @return bool True if logged in, false otherwise.
  */
 function isLoggedIn() {
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
 /**
- * 获取当前登录用户
- * @return array|null 用户信息或null（如果未登录）
+ * Get the currently logged-in user.
+ * @return array|null User information array or null if not logged in.
  */
 function getCurrentUser() {
     if (!isLoggedIn()) {
@@ -42,23 +42,23 @@ function getCurrentUser() {
 }
 
 /**
- * 检查用户是否为管理员
- * @return bool 是否为管理员
+ * Check if the user is an administrator.
+ * @return bool True if admin, false otherwise.
  */
 function isAdmin() {
     return isLoggedIn() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 }
 
 /**
- * 验证用户凭据并创建会话
- * @param string $username 用户名
- * @param string $password 密码
- * @return array 响应数组，包含success和message字段
+ * Validate user credentials and create a session.
+ * @param string $username Username.
+ * @param string $password Password.
+ * @return array Response array with success and message fields.
  */
 function login($username, $password) {
     global $db;
     
-    // 验证输入
+    // Validate input
     if (empty($username) || empty($password)) {
         return [
             'success' => false,
@@ -67,7 +67,7 @@ function login($username, $password) {
     }
     
     try {
-        // 查询用户 (移除role列)
+        // Query user (remove role column)
         $sql = "SELECT id, username, password, email FROM users WHERE username = ?";
         $user = $db->fetchOne($sql, [$username]);
         
@@ -78,7 +78,7 @@ function login($username, $password) {
             ];
         }
         
-        // 验证密码
+        // Verify password
         if (!password_verify($password, $user['password'])) {
             return [
                 'success' => false,
@@ -86,11 +86,11 @@ function login($username, $password) {
             ];
         }
         
-        // 创建会话
+        // Create session
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
-        $_SESSION['role'] = 'user'; // 设置默认角色
+        $_SESSION['role'] = 'user'; // Set default role
         $_SESSION['last_activity'] = time();
         
         return [
@@ -107,16 +107,16 @@ function login($username, $password) {
 }
 
 /**
- * 注册新用户
- * @param string $username 用户名
- * @param string $email 电子邮件
- * @param string $password 密码
- * @return array 响应数组，包含success和message字段
+ * Register a new user.
+ * @param string $username Username.
+ * @param string $email Email address.
+ * @param string $password Password.
+ * @return array Response array with success and message fields.
  */
 function register($username, $email, $password) {
     global $db;
     
-    // 验证输入
+    // Validate input
     if (empty($username) || empty($email) || empty($password)) {
         return [
             'success' => false,
@@ -124,7 +124,7 @@ function register($username, $email, $password) {
         ];
     }
     
-    // 验证邮箱格式
+    // Validate email format
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return [
             'success' => false,
@@ -133,7 +133,7 @@ function register($username, $email, $password) {
     }
     
     try {
-        // 检查用户名是否已存在
+        // Check if username already exists
         $sql = "SELECT id FROM users WHERE username = ?";
         $existingUser = $db->fetchOne($sql, [$username]);
         
@@ -144,7 +144,7 @@ function register($username, $email, $password) {
             ];
         }
         
-        // 检查邮箱是否已存在
+        // Check if email already exists
         $sql = "SELECT id FROM users WHERE email = ?";
         $existingEmail = $db->fetchOne($sql, [$email]);
         
@@ -155,20 +155,20 @@ function register($username, $email, $password) {
             ];
         }
         
-        // 哈希密码
+        // Hash password
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
         
-        // 插入新用户，created_at会自动设置为当前时间
+        // Insert new user, created_at will be set automatically to current time
         $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
         $db->execute($sql, [$username, $email, $hashedPassword]);
         
         $userId = $db->getLastInsertId();
         
-        // 自动登录
+        // Auto-login
         $_SESSION['user_id'] = $userId;
         $_SESSION['username'] = $username;
         $_SESSION['email'] = $email;
-        $_SESSION['role'] = 'user'; // 使用默认角色
+        $_SESSION['role'] = 'user'; // Use default role
         $_SESSION['last_activity'] = time();
         
         return [
@@ -185,14 +185,14 @@ function register($username, $email, $password) {
 }
 
 /**
- * 注销用户
- * @return bool 是否成功注销
+ * Log out the user.
+ * @return bool True if logout was successful.
  */
 function logout() {
-    // 清除所有会话数据
+    // Clear all session data
     $_SESSION = [];
     
-    // 销毁会话cookie
+    // Destroy session cookie
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
         setcookie(
@@ -206,15 +206,15 @@ function logout() {
         );
     }
     
-    // 销毁会话
+    // Destroy session
     session_destroy();
     
     return true;
 }
 
 /**
- * 验证会话是否已过期，并续期或注销
- * @return bool 会话是否有效
+ * Validate if the session has expired, and renew or log out.
+ * @return bool True if the session is valid, false otherwise.
  */
 function validateSession() {
     global $config;
@@ -223,51 +223,51 @@ function validateSession() {
         return false;
     }
     
-    $sessionLifetime = $config['app']['session_lifetime'] ?? 7200; // 默认2小时
+    $sessionLifetime = $config['app']['session_lifetime'] ?? 7200; // Default 2 hours
     $currentTime = time();
     $lastActivity = $_SESSION['last_activity'] ?? 0;
     
-    // 检查会话是否过期
+    // Check if session has expired
     if ($currentTime - $lastActivity > $sessionLifetime) {
         logout();
         return false;
     }
     
-    // 更新最后活动时间
+    // Update last activity time
     $_SESSION['last_activity'] = $currentTime;
     return true;
 }
 
-// 当页面加载时自动验证会话
+// Automatically validate session on page load
 validateSession(); 
 
-// 兼容性函数，使用旧名称调用新函数
-// 这些函数是为了与旧代码兼容
+// Compatibility functions, call new functions using old names
+// These functions are for compatibility with old code
 
 /**
- * 兼容函数：使用旧函数名loginUser调用新函数login
- * @param string $username 用户名
- * @param string $password 密码
- * @return array 登录结果
+ * Compatibility function: Call new login function using old function name loginUser.
+ * @param string $username Username.
+ * @param string $password Password.
+ * @return array Login result.
  */
 function loginUser($username, $password) {
     return login($username, $password);
 }
 
 /**
- * 兼容函数：使用旧函数名registerUser调用新函数register
- * @param string $username 用户名
- * @param string $email 电子邮件
- * @param string $password 密码
- * @return array 注册结果
+ * Compatibility function: Call new register function using old function name registerUser.
+ * @param string $username Username.
+ * @param string $email Email address.
+ * @param string $password Password.
+ * @return array Registration result.
  */
 function registerUser($username, $email, $password) {
     return register($username, $email, $password);
 }
 
 /**
- * 兼容函数：使用旧函数名logoutUser调用新函数logout
- * @return bool 是否成功注销
+ * Compatibility function: Call new logout function using old function name logoutUser.
+ * @return bool True if logout was successful.
  */
 function logoutUser() {
     return logout();

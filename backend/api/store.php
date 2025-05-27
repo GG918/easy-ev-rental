@@ -8,13 +8,8 @@ header("Content-Type: application/json");
 $raw = file_get_contents("php://input");
 $data = json_decode($raw, true);
 
-// 加载配置
+// Load configuration
 $config = require_once dirname(__DIR__) . '/config/config.php';
-
-// Log incoming data for debugging
-$log_file = fopen($config['paths']['debug'] . "/arduino_data.log", "a");
-fwrite($log_file, date("[Y-m-d H:i:s] ") . $raw . "\n\n");
-fclose($log_file);
 
 // Check for required fields
 if (!isset($data['location']['lat'], $data['location']['lng'])) {

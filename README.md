@@ -1,4 +1,4 @@
-[Read this document in Chinese (阅读中文文档)](README.zh-CN.md)
+[阅读中文文档](README.zh-CN.md)
 
 # eASY Electric Vehicle Rental System
 

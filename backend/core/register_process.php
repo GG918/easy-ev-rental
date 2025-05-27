@@ -1,42 +1,43 @@
 <?php
-// 处理注册请求的页面
+// Handle registration request page
 
-// 加载认证函数
+// Load authentication functions
 require_once 'auth.php';
 require_once '../includes/utils.php';
 
-// 检查是否为POST请求
+// Check if POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 获取POST数据
+    // Get POST data
     $username = $_POST['username'] ?? '';
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    // 尝试注册
+    // Attempt registration
     $result = register($username, $email, $password);
     
-    // 如果是AJAX请求
+    // If AJAX request
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
         header('Content-Type: application/json');
         echo json_encode($result);
         exit;
     }
     
-    // 普通表单提交
+    // Regular form submission
     if ($result['success']) {
-        // 注册成功，重定向到首页并显示成功消息
-        header('Location: ' . url('/view/index') . '?register_success=1');
+        // Registration successful, redirect to homepage with success message
+        header('Location: ' . url('index', ['register_success' => 1]));
         exit;
     } else {
-        // 注册失败，返回错误
+        // Registration failed, return error
         $error = urlencode($result['message']);
         $username = urlencode($username);
         $email = urlencode($email);
-        header("Location: " . url('/view/index') . "?register_error=$error&username=$username&email=$email");
+        $register_page_url = url('index', ['register_error' => $error, 'username' => $username, 'email' => $email]);
+        header("Location: " . $register_page_url);
         exit;
     }
 } else {
-    // 非POST请求，重定向到首页
-    header('Location: ' . url('/view/index'));
+    // Non-POST request, redirect to homepage
+    header('Location: ' . url('index'));
     exit;
 } 

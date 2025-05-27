@@ -1,41 +1,34 @@
 <?php
-// 添加调试输出，仅在开发环境中启用
-function debug_log($message) {
-    if (defined('DEBUG_MODE') && DEBUG_MODE) {
-        error_log("[Locations] " . $message);
-    }
-}
+// Define current environment - set to false in production
+// define('DEBUG_MODE', false);
 
-// 定义当前环境 - 在生产环境中设为 false
-define('DEBUG_MODE', false);
+// debug_log("Page load started");
 
-debug_log("Page load started");
-
-// 包含必要的文件
+// Include necessary files
 require_once '../../backend/core/Database.php';
 require_once '../../backend/core/auth.php';
 
-// 获取用户登录状态
+// Get user login status
 $isLoggedIn = isLoggedIn();
 $currentUser = getCurrentUser();
 
-if (DEBUG_MODE) {
-    debug_log("User login status: " . ($isLoggedIn ? "Logged in" : "Not logged in"));
-    if ($isLoggedIn) {
-        debug_log("User ID: " . $currentUser['id'] . ", Username: " . $currentUser['username']);
-    }
-}
+// if (DEBUG_MODE) {
+//     debug_log("User login status: " . ($isLoggedIn ? "Logged in" : "Not logged in"));
+//     if ($isLoggedIn) {
+//         debug_log("User ID: " . $currentUser['id'] . ", Username: " . $currentUser['username']);
+//     }
+// }
 
 try {
-    debug_log("Starting vehicle data fetch");
-    // 创建数据库连接
+    // debug_log("Starting vehicle data fetch");
+    // Create database connection
     $db = new Database();
     
-    // 使用现有视图获取最新位置数据
+    // Use existing view to get latest location data
     $pointsData = $db->getLatestLocations();
-    debug_log("Retrieved " . count($pointsData) . " vehicle records");
+    // debug_log("Retrieved " . count($pointsData) . " vehicle records");
     
-    // 确保数据格式正确，仅转换类型
+    // Ensure data format is correct, only convert types
     foreach ($pointsData as &$point) {
         $point['latitude'] = (float)$point['latitude'];
         $point['longitude'] = (float)$point['longitude'];
@@ -44,7 +37,7 @@ try {
     
     $pointsJson = json_encode($pointsData, JSON_UNESCAPED_UNICODE);
 } catch (Exception $e) {
-    debug_log("Database error: " . $e->getMessage());
+    // debug_log("Database error: " . $e->getMessage());
     $pointsData = [];
     $pointsJson = "[]";
 }
@@ -56,12 +49,24 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Tracking System</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="../public/css/locations.css">
-    <link rel="stylesheet" href="../public/css/booking.css">
+    <link rel="stylesheet" href="/web/frontend/public/css/locations.css">
+    <link rel="stylesheet" href="/web/frontend/public/css/booking.css">
 </head>
 <body>
 <!-- Map container -->
 <div id="map"></div>
+
+<!-- Navigation buttons -->
+<div class="nav-buttons">
+    <a href="/web/frontend/views/index.php" class="nav-btn home-btn">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Home</span>
+    </a>
+    <a href="/web/frontend/views/my_reservations.php" class="nav-btn reservations-btn">
+        <span class="nav-icon">📋</span>
+        <span class="nav-text">My Reservations</span>
+    </a>
+</div>
 
 <!-- Location permission prompt dialog -->
 <div id="locationPermissionPrompt" class="permission-prompt">
@@ -174,12 +179,12 @@ try {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Include modular JS files -->
-<script src="../public/js/util-service.js"></script>
-<script src="../public/js/map-service.js"></script>
-<script src="../public/js/location-service.js"></script>
-<script src="../public/js/data-service.js"></script>
-<script src="../public/js/reservation.js"></script>
-<script src="../public/js/ui-service.js"></script>
+<script src="/web/frontend/public/js/util-service.js"></script>
+<script src="/web/frontend/public/js/map-service.js"></script>
+<script src="/web/frontend/public/js/location-service.js"></script>
+<script src="/web/frontend/public/js/data-service.js"></script>
+<script src="/web/frontend/public/js/reservation.js"></script>
+<script src="/web/frontend/public/js/ui-service.js"></script>
 
 <!-- Set PHP variables to JavaScript -->
 <script>

@@ -1,5 +1,5 @@
 /**
- * 位置服务 - 处理地图和车辆位置相关功能
+ * Location Service - Handles map and vehicle location related functions
  */
 const LocationsService = {
     map: null,
@@ -9,47 +9,47 @@ const LocationsService = {
     userLocation: null,
     
     /**
-     * 初始化地图
+     * Initialize map
      */
     initMap: function() {
-        // 初始默认位置 (上海市中心)
+        // Initial default location (Shanghai city center)
         const defaultLocation = [31.230416, 121.473701];
         
-        // 创建地图
+        // Create map
         this.map = L.map('map').setView(defaultLocation, 14);
         
-        // 添加地图瓦片层
+        // Add map tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
         }).addTo(this.map);
         
-        // 尝试获取用户位置
+        // Attempt to get user location
         this.getUserLocation();
         
-        // 加载车辆数据
+        // Load vehicle data
         this.loadVehicleData();
         
-        // 设置地图事件监听器
+        // Set map event listeners
         this.setupMapEventListeners();
     },
     
     /**
-     * 获取用户位置
+     * Get user location
      */
     getUserLocation: function() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                // 成功回调
+                // Success callback
                 (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
                     this.userLocation = [lat, lng];
                     
-                    // 移动地图到用户位置
+                    // Move map to user location
                     this.map.setView(this.userLocation, 15);
                     
-                    // 添加用户位置标记
+                    // Add user location marker
                     L.marker(this.userLocation, {
                         icon: L.divIcon({
                             className: 'user-marker',
@@ -57,13 +57,13 @@ const LocationsService = {
                             iconSize: [20, 20]
                         })
                     }).addTo(this.map)
-                      .bindPopup('<b>您的位置</b>');
+                      .bindPopup('<b>Your Location</b>');
                 },
-                // 错误回调
+                // Error callback
                 (error) => {
-                    console.error('获取位置失败:', error.message);
+                    console.error('Failed to get location:', error.message);
                 },
-                // 选项
+                // Options
                 {
                     enableHighAccuracy: true,
                     timeout: 5000,
@@ -71,15 +71,15 @@ const LocationsService = {
                 }
             );
         } else {
-            console.error('浏览器不支持地理位置');
+            console.error('Browser does not support geolocation');
         }
     },
     
     /**
-     * 加载车辆数据
+     * Load vehicle data
      */
     loadVehicleData: function() {
-        // 发送请求获取车辆数据
+        // Send request to get vehicle data
         fetch('/api/locations')
             .then(response => response.json())
             .then(data => {
@@ -89,19 +89,19 @@ const LocationsService = {
                 }
             })
             .catch(error => {
-                console.error('加载车辆数据失败:', error);
+                console.error('Failed to load vehicle data:', error);
             });
     },
     
     /**
-     * 在地图上显示车辆
-     * @param {Array} vehicles - 车辆数据
+     * Display vehicles on the map
+     * @param {Array} vehicles - Vehicle data
      */
     displayVehicles: function(vehicles) {
-        // 清除现有标记
+        // Clear existing markers
         this.clearMarkers();
         
-        // 添加新标记
+        // Add new markers
         vehicles.forEach(vehicle => {
             if (vehicle.latitude && vehicle.longitude) {
                 const marker = this.createVehicleMarker(vehicle);
@@ -111,9 +111,9 @@ const LocationsService = {
     },
     
     /**
-     * 创建车辆标记
-     * @param {Object} vehicle - 车辆数据
-     * @returns {Object} - Leaflet标记对象
+     * Create vehicle marker
+     * @param {Object} vehicle - Vehicle data
+     * @returns {Object} - Leaflet marker object
      */
     createVehicleMarker: function(vehicle) {
         const markerIcon = L.divIcon({
@@ -133,9 +133,9 @@ const LocationsService = {
     },
     
     /**
-     * 创建车辆弹出窗口内容
-     * @param {Object} vehicle - 车辆数据
-     * @returns {String} - HTML内容
+     * Create vehicle popup content
+     * @param {Object} vehicle - Vehicle data
+     * @returns {String} - HTML content
      */
     createVehiclePopup: function(vehicle) {
         const batteryClass = this.getBatteryClass(vehicle.battery_level);
@@ -143,20 +143,20 @@ const LocationsService = {
         
         return `
             <div class="vehicle-popup">
-                <h3>车辆 #${vehicle.id}</h3>
+                <h3>Vehicle #${vehicle.id}</h3>
                 <div class="vehicle-details">
-                    <p><strong>状态:</strong> <span class="status-${vehicle.status}">${statusText}</span></p>
-                    <p><strong>电池:</strong> <span class="battery ${batteryClass}">${vehicle.battery_level || 0}%</span></p>
+                    <p><strong>Status:</strong> <span class="status-${vehicle.status}">${statusText}</span></p>
+                    <p><strong>Battery:</strong> <span class="battery ${batteryClass}">${vehicle.battery_level || 0}%</span></p>
                 </div>
-                <button class="book-btn" onclick="LocationsService.openBookingPanel(${vehicle.id})">预订车辆</button>
+                <button class="book-btn" onclick="LocationsService.openBookingPanel(${vehicle.id})">Book Vehicle</button>
             </div>
         `;
     },
     
     /**
-     * 根据电池电量获取CSS类
-     * @param {Number} level - 电池电量
-     * @returns {String} - CSS类名
+     * Get CSS class based on battery level
+     * @param {Number} level - Battery level
+     * @returns {String} - CSS class name
      */
     getBatteryClass: function(level) {
         if (level >= 70) return 'high';
@@ -165,24 +165,24 @@ const LocationsService = {
     },
     
     /**
-     * 获取状态文本
-     * @param {String} status - 状态代码
-     * @returns {String} - 状态文本
+     * Get status text
+     * @param {String} status - Status code
+     * @returns {String} - Status text
      */
     getStatusText: function(status) {
         const statusMap = {
-            'available': '可用',
-            'reserved': '已预订',
-            'in_use': '使用中',
-            'maintenance': '维护中',
-            'offline': '离线'
+            'available': 'Available',
+            'reserved': 'Reserved',
+            'in_use': 'In Use',
+            'maintenance': 'Maintenance',
+            'offline': 'Offline'
         };
         
         return statusMap[status] || status;
     },
     
     /**
-     * 清除所有标记
+     * Clear all markers
      */
     clearMarkers: function() {
         this.markers.forEach(marker => {
@@ -192,52 +192,52 @@ const LocationsService = {
     },
     
     /**
-     * 车辆选择处理
-     * @param {Object} vehicle - 车辆数据
-     * @param {Object} marker - 标记对象
+     * Vehicle selection handler
+     * @param {Object} vehicle - Vehicle data
+     * @param {Object} marker - Marker object
      */
     onVehicleSelect: function(vehicle, marker) {
         this.selectedVehicle = vehicle;
     },
     
     /**
-     * 打开预订面板
-     * @param {Number} vehicleId - 车辆ID
+     * Open booking panel
+     * @param {Number} vehicleId - Vehicle ID
      */
     openBookingPanel: function(vehicleId) {
-        // 查找车辆数据
+        // Find vehicle data
         const vehicle = this.vehicleData.find(v => v.id == vehicleId);
         if (!vehicle) return;
         
-        // 更新预订面板数据
+        // Update booking panel data
         document.getElementById('vehicle-id').textContent = vehicle.id;
-        document.getElementById('vehicle-type-info').textContent = vehicle.type || '电动滑板车';
+        document.getElementById('vehicle-type-info').textContent = vehicle.type || 'Electric Scooter';
         document.getElementById('vehicle-status-info').textContent = this.getStatusText(vehicle.status);
         document.getElementById('vehicle-battery').textContent = vehicle.battery_level || 0;
         
-        // 设置预订表单的车辆ID
+        // Set vehicle ID for booking form
         document.getElementById('booking-vehicle-id').value = vehicle.id;
         
-        // 设置预订日期默认为今天
+        // Set booking date default to today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('booking-date').value = today;
         document.getElementById('booking-date').min = today;
         
-        // 生成时间选项
+        // Generate time options
         this.generateTimeOptions();
         
-        // 显示预订面板
+        // Show booking panel
         document.getElementById('booking-panel').classList.remove('hidden');
     },
     
     /**
-     * 生成时间选项
+     * Generate time options
      */
     generateTimeOptions: function() {
         const timeSelect = document.getElementById('booking-time');
         timeSelect.innerHTML = '';
         
-        // 获取当前时间并向上取整到最近的半小时
+        // Get current time and round up to the nearest half hour
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
@@ -249,7 +249,7 @@ const LocationsService = {
             startMinute = 0;
         }
         
-        // 生成时间选项，从当前时间到当天结束
+        // Generate time options, from current time to end of day
         for (let hour = startHour; hour < 24; hour++) {
             for (let minute = (hour === startHour ? startMinute : 0); minute < 60; minute += 30) {
                 const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -262,10 +262,10 @@ const LocationsService = {
     },
     
     /**
-     * 设置地图事件监听器
+     * Set up map event listeners
      */
     setupMapEventListeners: function() {
-        // 预订表单提交
+        // Booking form submission
         const bookingForm = document.getElementById('booking-form');
         if (bookingForm) {
             bookingForm.addEventListener('submit', (event) => {
@@ -274,7 +274,7 @@ const LocationsService = {
             });
         }
         
-        // 关闭预订面板
+        // Close booking panel
         const closeButton = document.getElementById('close-booking-panel');
         if (closeButton) {
             closeButton.addEventListener('click', () => {
@@ -282,7 +282,7 @@ const LocationsService = {
             });
         }
         
-        // 应用筛选器
+        // Apply filters
         const filterButton = document.getElementById('apply-filters');
         if (filterButton) {
             filterButton.addEventListener('click', () => {
@@ -292,38 +292,38 @@ const LocationsService = {
     },
     
     /**
-     * 提交预订
+     * Submit booking
      */
     submitBooking: function() {
-        // 检查用户是否已登录
+        // Check if user is logged in
         if (typeof AuthService !== 'undefined' && !AuthService.isAuthenticated()) {
-            // 显示登录提示
-            alert('请先登录后再预订车辆');
-            // 重定向到登录页面
+            // Show login prompt
+            alert('Please log in before booking a vehicle');
+            // Redirect to login page
             window.location.href = '/view/index?show_login=1&return_url=/view/locations';
             return;
         }
         
-        // 获取表单数据
+        // Get form data
         const vehicleId = document.getElementById('booking-vehicle-id').value;
         const bookingDate = document.getElementById('booking-date').value;
         const bookingTime = document.getElementById('booking-time').value;
         const bookingDuration = document.getElementById('booking-duration').value;
         
-        // 计算开始和结束时间
+        // Calculate start and end times
         const startTime = `${bookingDate}T${bookingTime}:00`;
         const endDateTime = new Date(startTime);
         endDateTime.setHours(endDateTime.getHours() + parseInt(bookingDuration));
         const endTime = endDateTime.toISOString().slice(0, 16).replace('T', ' ');
         
-        // 创建请求数据
+        // Create request data
         const bookingData = {
             vehicle_id: vehicleId,
             start_time: startTime.replace('T', ' '),
             end_time: endTime
         };
         
-        // 发送预订请求
+        // Send booking request
         fetch('/api/reservations', {
             method: 'POST',
             headers: {
@@ -334,38 +334,38 @@ const LocationsService = {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('预订成功');
-                // 隐藏预订面板
+                alert('Booking successful');
+                // Hide booking panel
                 document.getElementById('booking-panel').classList.add('hidden');
-                // 重新加载车辆数据
+                // Reload vehicle data
                 this.loadVehicleData();
-                // 跳转到预订页面
+                // Redirect to reservations page
                 window.location.href = '/view/my_reservations';
             } else {
-                alert('预订失败: ' + (data.message || '未知错误'));
+                alert('Booking failed: ' + (data.message || 'Unknown error'));
             }
         })
         .catch(error => {
-            console.error('预订请求失败:', error);
-            alert('预订失败，请稍后重试');
+            console.error('Booking request failed:', error);
+            alert('Booking failed, please try again later');
         });
     },
     
     /**
-     * 应用筛选器
+     * Apply filters
      */
     applyFilters: function() {
         const vehicleType = document.getElementById('vehicle-type').value;
         const vehicleStatus = document.getElementById('vehicle-status').value;
         
-        // 过滤车辆数据
+        // Filter vehicle data
         const filteredVehicles = this.vehicleData.filter(vehicle => {
-            // 类型过滤
+            // Type filter
             if (vehicleType !== 'all' && vehicle.type !== vehicleType) {
                 return false;
             }
             
-            // 状态过滤
+            // Status filter
             if (vehicleStatus !== 'all' && vehicle.status !== vehicleStatus) {
                 return false;
             }
@@ -373,12 +373,12 @@ const LocationsService = {
             return true;
         });
         
-        // 显示过滤后的车辆
+        // Display filtered vehicles
         this.displayVehicles(filteredVehicles);
     }
 };
 
-// 页面加载完成后初始化地图
+// Initialize map after page load
 document.addEventListener('DOMContentLoaded', function() {
     LocationsService.initMap();
 }); 

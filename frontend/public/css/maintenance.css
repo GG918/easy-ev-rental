@@ -51,7 +51,7 @@ h2 {
     color: #d32f2f;
 }
 
-/* 维护页面样式 */
+/* Maintenance page styles */
 .main-content {
     padding: 20px;
 }
@@ -103,7 +103,7 @@ h2 {
     opacity: 0;
 }
 
-/* 筛选器样式 */
+/* Filter styles */
 .filters {
     display: flex;
     gap: 10px;
@@ -120,7 +120,7 @@ h2 {
     font-size: 14px;
 }
 
-/* 表格样式 */
+/* Table styles */
 .table-container {
     width: 100%;
     overflow-x: auto;
@@ -191,7 +191,7 @@ h2 {
     color: #721c24;
 }
 
-/* 操作按钮 */
+/* Action buttons */
 .primary-button {
     background-color: #007bff;
     color: white;
@@ -240,7 +240,7 @@ h2 {
     background-color: #218838;
 }
 
-/* 模态框样式 */
+/* Modal styles */
 .modal {
     display: none;
     position: fixed;
@@ -284,7 +284,7 @@ h2 {
     color: #000;
 }
 
-/* 表单样式 */
+/* Form styles */
 .form-group {
     margin-bottom: 15px;
 }
@@ -348,7 +348,7 @@ h2 {
     background-color: #5a6268;
 }
 
-/* 响应式设计 */
+/* Responsive design */
 @media (max-width: 768px) {
     .page-header {
         flex-direction: column;

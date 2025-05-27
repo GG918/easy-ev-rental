@@ -329,7 +329,7 @@ const UIService = (function() {
         
         try {
             console.log(`Fetching time slots for vehicle ${vehicleId} on ${date}`);
-            const response = await fetch(`api.php?action=getAvailableTimeSlots&scooter_id=${vehicleId}&date=${date}`);
+            const response = await fetch(`/web/backend/api/api.php/timeslots?vehicle_id=${vehicleId}&date=${date}`);
             
             if (!response.ok) {
                 throw new Error(`Failed to get time slots: ${response.status} ${response.statusText}`);
@@ -337,8 +337,8 @@ const UIService = (function() {
             
             const data = await response.json();
             
-            if (data.success) {
-                timeSlots = data.timeSlots;
+            if (data.status === 'success') {
+                timeSlots = data.data.time_slots;
                 renderTimeSlots();
             } else {
                 // Show error message returned by the API

@@ -2,44 +2,44 @@
 require_once '../../backend/core/auth.php';
 require_once '../../backend/includes/utils.php';
 
-// 检查用户是否已登录
+// Check if the user is already logged in
 $isLoggedIn = isLoggedIn();
 if ($isLoggedIn) {
-    // 如果已登录，重定向到首页
+    // If logged in, redirect to the main page
     header('Location: index.php');
     exit;
 }
 
-// 处理错误消息
+// Handle error messages
 $error = '';
 if (isset($_GET['error'])) {
     switch ($_GET['error']) {
         case 'invalid_credentials':
-            $error = '用户名或密码不正确';
+            $error = 'Invalid username or password.';
             break;
         case 'empty_fields':
-            $error = '请填写所有必填字段';
+            $error = 'Please fill in all required fields.';
             break;
         default:
-            $error = '登录时发生错误，请重试';
+            $error = 'An error occurred during login. Please try again.';
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - eASY</title>
+    <title>Login - eASY</title>
     <link rel="stylesheet" href="../public/css/index.css">
     <link rel="stylesheet" href="../public/css/auth.css">
 </head>
 <body>
     <header>
-        <div class="logo"><a href="/view/index">eASY</a></div>
+        <div class="logo"><a href="/web/frontend/views/index.php">eASY</a></div>
         <nav class="header">
             <ul>
-                <li><a href="/view/locations">查找车辆</a></li>
+                <li><a href="/web/frontend/views/locations.php">Find Vehicles</a></li>
             </ul>
         </nav>
     </header>
@@ -47,7 +47,7 @@ if (isset($_GET['error'])) {
     <div class="main-content">
         <div class="auth-container">
             <div class="auth-card">
-                <h2>登录</h2>
+                <h2>Login</h2>
                 
                 <?php if (!empty($error)): ?>
                     <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
@@ -55,22 +55,22 @@ if (isset($_GET['error'])) {
                 
                 <form action="/backend/core/login_process.php" method="post" class="auth-form">
                     <div class="form-group">
-                        <label for="username">用户名</label>
+                        <label for="username">Username</label>
                         <input type="text" id="username" name="username" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="password">密码</label>
+                        <label for="password">Password</label>
                         <input type="password" id="password" name="password" required>
                     </div>
                     
                     <div class="form-actions">
-                        <button type="submit" class="submit-btn">登录</button>
+                        <button type="submit" class="submit-btn">Login</button>
                     </div>
                 </form>
                 
                 <div class="auth-links">
-                    <p>还没有账号？<a href="/view/register">注册</a></p>
+                    <p>Don't have an account? <a href="/view/register">Register</a></p>
                 </div>
             </div>
         </div>
@@ -78,9 +78,9 @@ if (isset($_GET['error'])) {
 
     <footer>
         <div class="footer-content">
-            <p>&copy; 2025 eASY - 您的可持续出行选择</p>
+            <p>&copy; 2025 eASY - Your sustainable mobility choice</p>
             <div class="footer-nav">
-                <a href="#">帮助</a>
+                <a href="#">Help</a>
             </div>
         </div>
     </footer>

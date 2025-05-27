@@ -1,5 +1,5 @@
 /**
- * 维护服务 - 处理维护记录相关功能
+ * Maintenance Service - Handles maintenance record related functions
  */
 const MaintenanceService = {
     maintenanceData: [],
@@ -10,27 +10,27 @@ const MaintenanceService = {
     selectedMaintenanceId: null,
     
     /**
-     * 初始化维护服务
+     * Initialize maintenance service
      */
     init: function() {
-        // 获取维护记录
+        // Get maintenance records
         this.loadMaintenanceData();
         
-        // 设置事件监听器
+        // Set event listeners
         this.setupEventListeners();
     },
     
     /**
-     * 设置事件监听器
+     * Set event listeners
      */
     setupEventListeners: function() {
-        // 添加维护按钮
+        // Add maintenance button
         const addButton = document.getElementById('add-maintenance-btn');
         if (addButton) {
             addButton.addEventListener('click', () => this.openModal());
         }
         
-        // 维护表单提交
+        // Maintenance form submission
         const maintenanceForm = document.getElementById('maintenance-form');
         if (maintenanceForm) {
             maintenanceForm.addEventListener('submit', (e) => {
@@ -39,19 +39,19 @@ const MaintenanceService = {
             });
         }
         
-        // 筛选器按钮
+        // Filter buttons
         const applyFiltersButton = document.getElementById('apply-filters');
         if (applyFiltersButton) {
             applyFiltersButton.addEventListener('click', () => this.applyFilters());
         }
         
-        // 重置筛选器按钮
+        // Reset filter button
         const resetFiltersButton = document.getElementById('reset-filters');
         if (resetFiltersButton) {
             resetFiltersButton.addEventListener('click', () => this.resetFilters());
         }
         
-        // 确认完成按钮
+        // Confirm complete button
         const confirmCompleteButton = document.getElementById('confirm-complete-btn');
         if (confirmCompleteButton) {
             confirmCompleteButton.addEventListener('click', () => this.completeMaintenance());
@@ -59,16 +59,16 @@ const MaintenanceService = {
     },
     
     /**
-     * 加载维护记录数据
+     * Load maintenance record data
      */
     loadMaintenanceData: function() {
-        // 显示加载状态
+        // Show loading state
         const tableBody = document.getElementById('maintenance-data');
         if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="loading-message">正在加载维护记录...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" class="loading-message">Loading maintenance records...</td></tr>';
         }
         
-        // 发送API请求获取维护记录
+        // Send API request to get maintenance records
         fetch('/api/maintenance')
             .then(response => response.json())
             .then(data => {
@@ -76,43 +76,43 @@ const MaintenanceService = {
                     this.maintenanceData = data.data || [];
                     this.renderMaintenanceData();
                 } else {
-                    this.showNotification('获取维护记录失败: ' + (data.message || '未知错误'), 'error');
+                    this.showNotification('Failed to get maintenance records: ' + (data.message || 'Unknown error'), 'error');
                     if (tableBody) {
-                        tableBody.innerHTML = '<tr><td colspan="6" class="error-message">加载失败</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="6" class="error-message">Loading failed</td></tr>';
                     }
                 }
             })
             .catch(error => {
-                console.error('API请求错误:', error);
-                this.showNotification('获取维护记录失败: ' + error.message, 'error');
+                console.error('API request error:', error);
+                this.showNotification('Failed to get maintenance records: ' + error.message, 'error');
                 if (tableBody) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="error-message">加载失败</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="6" class="error-message">Loading failed</td></tr>';
                 }
             });
     },
     
     /**
-     * 渲染维护记录数据
+     * Render maintenance record data
      */
     renderMaintenanceData: function() {
         const tableBody = document.getElementById('maintenance-data');
         if (!tableBody) return;
         
-        // 应用筛选器
+        // Apply filters
         const filteredData = this.applyDataFilters(this.maintenanceData);
         
         if (filteredData.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6" class="empty-message">没有找到维护记录</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" class="empty-message">No maintenance records found</td></tr>';
             return;
         }
         
-        // 生成表格行
+        // Generate table rows
         let html = '';
         filteredData.forEach(record => {
             const isCompleted = record.completed_at !== null;
-            const status = isCompleted ? '已完成' : '待处理';
+            const status = isCompleted ? 'Completed' : 'Pending';
             const statusClass = isCompleted ? 'completed' : 'pending';
-            const formattedDate = new Date(record.maintenance_date).toLocaleDateString('zh-CN');
+            const formattedDate = new Date(record.maintenance_date).toLocaleDateString('en-US');
             
             html += `
                 <tr data-id="${record.id}" class="maintenance-row ${statusClass}">
@@ -122,7 +122,7 @@ const MaintenanceService = {
                     <td>${record.description}</td>
                     <td class="status-${statusClass}">${status}</td>
                     <td class="actions">
-                        ${isCompleted ? '' : '<button class="action-btn complete-btn" data-id="' + record.id + '">完成</button>'}
+                        ${isCompleted ? '' : '<button class="action-btn complete-btn" data-id="' + record.id + '">Complete</button>'}
                     </td>
                 </tr>
             `;
@@ -130,7 +130,7 @@ const MaintenanceService = {
         
         tableBody.innerHTML = html;
         
-        // 添加完成按钮事件监听器
+        // Add complete button event listeners
         const completeButtons = document.querySelectorAll('.complete-btn');
         completeButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -141,13 +141,13 @@ const MaintenanceService = {
     },
     
     /**
-     * 应用数据筛选器
-     * @param {Array} data - 原始数据
-     * @returns {Array} - 筛选后的数据
+     * Apply data filters
+     * @param {Array} data - Original data
+     * @returns {Array} - Filtered data
      */
     applyDataFilters: function(data) {
         return data.filter(record => {
-            // 筛选状态
+            // Filter status
             if (this.activeFilters.status !== 'all') {
                 const isCompleted = record.completed_at !== null;
                 if (
@@ -158,7 +158,7 @@ const MaintenanceService = {
                 }
             }
             
-            // 筛选日期
+            // Filter date
             if (this.activeFilters.date) {
                 const filterDate = new Date(this.activeFilters.date).toDateString();
                 const recordDate = new Date(record.maintenance_date).toDateString();
@@ -172,7 +172,7 @@ const MaintenanceService = {
     },
     
     /**
-     * 应用筛选器
+     * Apply filters
      */
     applyFilters: function() {
         const statusFilter = document.getElementById('status-filter');
@@ -187,7 +187,7 @@ const MaintenanceService = {
     },
     
     /**
-     * 重置筛选器
+     * Reset filters
      */
     resetFilters: function() {
         const statusFilter = document.getElementById('status-filter');
@@ -205,7 +205,7 @@ const MaintenanceService = {
     },
     
     /**
-     * 打开添加维护模态框
+     * Open add maintenance modal
      */
     openModal: function() {
         const modal = document.getElementById('maintenance-modal');
@@ -215,22 +215,22 @@ const MaintenanceService = {
     },
     
     /**
-     * 关闭添加维护模态框
+     * Close add maintenance modal
      */
     closeModal: function() {
         const modal = document.getElementById('maintenance-modal');
         if (modal) {
             modal.style.display = 'none';
             
-            // 重置表单
+            // Reset form
             const form = document.getElementById('maintenance-form');
             if (form) form.reset();
         }
     },
     
     /**
-     * 打开确认完成模态框
-     * @param {number} maintenanceId - 维护记录ID
+     * Open confirm complete modal
+     * @param {number} maintenanceId - Maintenance record ID
      */
     openConfirmModal: function(maintenanceId) {
         this.selectedMaintenanceId = maintenanceId;
@@ -242,7 +242,7 @@ const MaintenanceService = {
     },
     
     /**
-     * 关闭确认完成模态框
+     * Close confirm complete modal
      */
     closeConfirmModal: function() {
         this.selectedMaintenanceId = null;
@@ -254,7 +254,7 @@ const MaintenanceService = {
     },
     
     /**
-     * 提交维护表单
+     * Submit maintenance form
      */
     submitMaintenanceForm: function() {
         const vehicleId = document.getElementById('vehicle-id')?.value;
@@ -262,7 +262,7 @@ const MaintenanceService = {
         const description = document.getElementById('description')?.value;
         
         if (!vehicleId || !maintenanceDate || !description) {
-            this.showNotification('请填写所有必填字段', 'error');
+            this.showNotification('Please fill in all required fields', 'error');
             return;
         }
         
@@ -271,7 +271,7 @@ const MaintenanceService = {
         formData.append('maintenance_date', maintenanceDate);
         formData.append('description', description);
         
-        // 发送请求
+        // Send request
         fetch('/api/maintenance', {
             method: 'POST',
             body: formData
@@ -279,62 +279,62 @@ const MaintenanceService = {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    this.showNotification('维护记录已成功添加', 'success');
+                    this.showNotification('Maintenance record added successfully', 'success');
                     this.closeModal();
-                    this.loadMaintenanceData(); // 重新加载数据
+                    this.loadMaintenanceData(); // Reload data
                 } else {
-                    this.showNotification('添加维护记录失败: ' + (data.message || '未知错误'), 'error');
+                    this.showNotification('Failed to add maintenance record: ' + (data.message || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
-                console.error('API请求错误:', error);
-                this.showNotification('添加维护记录失败: ' + error.message, 'error');
+                console.error('API request error:', error);
+                this.showNotification('Failed to add maintenance record: ' + error.message, 'error');
             });
     },
     
     /**
-     * 完成维护
+     * Complete maintenance
      */
     completeMaintenance: function() {
         if (!this.selectedMaintenanceId) return;
         
-        // 发送完成维护请求
+        // Send complete maintenance request
         fetch(`/api/maintenance/${this.selectedMaintenanceId}/complete`, {
             method: 'POST'
         })
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    this.showNotification('维护记录已标记为已完成', 'success');
+                    this.showNotification('Maintenance record marked as completed', 'success');
                     this.closeConfirmModal();
-                    this.loadMaintenanceData(); // 重新加载数据
+                    this.loadMaintenanceData(); // Reload data
                 } else {
-                    this.showNotification('完成维护失败: ' + (data.message || '未知错误'), 'error');
+                    this.showNotification('Failed to complete maintenance: ' + (data.message || 'Unknown error'), 'error');
                     this.closeConfirmModal();
                 }
             })
             .catch(error => {
-                console.error('API请求错误:', error);
-                this.showNotification('完成维护失败: ' + error.message, 'error');
+                console.error('API request error:', error);
+                this.showNotification('Failed to complete maintenance: ' + error.message, 'error');
                 this.closeConfirmModal();
             });
     },
     
     /**
-     * 显示通知消息
-     * @param {string} message - 消息内容
-     * @param {string} type - 消息类型 (success/error/info)
+     * Show notification message
+     * @param {string} message - Message content
+     * @param {string} type - Message type (success/error/info)
      */
     showNotification: function(message, type = 'info') {
         const notification = document.getElementById('notification');
         if (!notification) return;
         
-        // 设置通知内容和类型
+        // Set notification content and type
         notification.textContent = message;
         notification.className = `notification ${type}`;
         notification.classList.remove('hidden');
         
-        // 自动隐藏通知
+        // Auto-hide notification
         setTimeout(() => {
             notification.classList.add('hidden');
         }, 5000);

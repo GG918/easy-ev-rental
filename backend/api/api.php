@@ -1,44 +1,71 @@
 <?php
-// 包含必要的文件
+session_start();
 require_once '../core/Database.php';
 require_once '../core/auth.php';
 
-// 启用跨域支持
+// Enable CORS support
 header('Access-Control-Allow-Origin: *');
 header('Content-Type: application/json');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Access-Control-Allow-Headers, Content-Type, Access-Control-Allow-Methods, Authorization, X-Requested-With');
 
-// 获取HTTP请求方法和路径
+// Create database connection
+$db = new Database();
+
+// Get HTTP request method and path
 $requestMethod = $_SERVER['REQUEST_METHOD'];
 $requestUri = $_SERVER['REQUEST_URI'];
 $requestPath = parse_url($requestUri, PHP_URL_PATH);
 $pathSegments = explode('/', trim($requestPath, '/'));
 
-// 找到API部分的索引
+// Find API part index
 $apiIndex = array_search('api.php', $pathSegments);
 $apiPath = array_slice($pathSegments, $apiIndex + 1);
 
-// 如果没有具体路径，设置为root
+// If no specific path, set to root
 $resource = $apiPath[0] ?? 'root';
 $id = $apiPath[1] ?? null;
 
-// 连接数据库
-$db = new Database();
-
-// 根据请求路径和方法处理请求
+// Handle request based on path and method
 try {
     switch ($resource) {
         case 'root':
-            // API根路径
+            // API root path
             echo json_encode([
                 'status' => 'success',
-                'message' => 'eASY API服务',
+                'message' => 'eASY API Service - RESTful Edition',
+                'version' => '2.0',
                 'endpoints' => [
-                    'vehicles' => '/api.php/vehicles',
-                    'reservations' => '/api.php/reservations',
-                    'locations' => '/api.php/locations',
-                    'users' => '/api.php/users'
+                    'vehicles' => [
+                        'GET /api.php/vehicles' => 'Get all vehicles (latest locations)',
+                        'GET /api.php/vehicles/{id}' => 'Get specific vehicle details',
+                        'POST /api.php/vehicles' => 'Add new vehicle (admin only)',
+                        'PUT /api.php/vehicles/{id}' => 'Update vehicle (admin only)',
+                        'DELETE /api.php/vehicles/{id}' => 'Delete vehicle (admin only)'
+                    ],
+                    'reservations' => [
+                        'GET /api.php/reservations' => 'Get user reservations',
+                        'GET /api.php/reservations/{id}' => 'Get specific reservation',
+                        'POST /api.php/reservations' => 'Create new reservation',
+                        'PUT /api.php/reservations/{id}' => 'Update reservation',
+                        'DELETE /api.php/reservations/{id}' => 'Cancel reservation'
+                    ],
+                    'locations' => [
+                        'GET /api.php/locations' => 'Get vehicle locations',
+                        'POST /api.php/locations' => 'Update vehicle location'
+                    ],
+                    'users' => [
+                        'GET /api.php/users' => 'Get users (admin only)',
+                        'GET /api.php/users/{id}' => 'Get user details',
+                        'PUT /api.php/users/{id}' => 'Update user information'
+                    ],
+                    'trips' => [
+                        'POST /api.php/trips' => 'Start trip',
+                        'PUT /api.php/trips/{id}' => 'End trip'
+                    ],
+                    'timeslots' => [
+                        'GET /api.php/timeslots?vehicle_id={id}&date={date}' => 'Get available time slots'
+                    ]
                 ]
             ]);
             break;
@@ -59,30 +86,39 @@ try {
             handleUsersRequest($requestMethod, $id, $db);
             break;
             
+        case 'trips':
+            handleTripsRequest($requestMethod, $id, $db);
+            break;
+            
+        case 'timeslots':
+            handleTimeSlotsRequest($requestMethod, $db);
+            break;
+            
         default:
-            // 未知资源
+            // Unknown resource
             http_response_code(404);
             echo json_encode([
                 'status' => 'error',
-                'message' => '请求的资源不存在'
+                'message' => 'Resource not found',
+                'available_resources' => ['vehicles', 'reservations', 'locations', 'users', 'trips', 'timeslots']
             ]);
     }
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
         'status' => 'error',
-        'message' => '服务器内部错误',
+        'message' => 'Internal server error',
         'error' => $e->getMessage()
     ]);
 }
 
-// 处理车辆相关请求
+// Handle vehicle related requests
 function handleVehiclesRequest($method, $id, $db) {
     switch ($method) {
         case 'GET':
             if ($id) {
-                // 获取单个车辆
-                $vehicle = $db->getVehicleById($id);
+                // Get single vehicle details and status
+                $vehicle = $db->getVehicleStatus($id);
                 if ($vehicle) {
                     echo json_encode([
                         'status' => 'success',
@@ -92,12 +128,12 @@ function handleVehiclesRequest($method, $id, $db) {
                     http_response_code(404);
                     echo json_encode([
                         'status' => 'error',
-                        'message' => '未找到该车辆'
+                        'message' => 'Vehicle not found'
                     ]);
                 }
             } else {
-                // 获取所有车辆
-                $vehicles = $db->getAllVehicles();
+                // Get latest location data for all vehicles
+                $vehicles = $db->getLatestLocations();
                 echo json_encode([
                     'status' => 'success',
                     'data' => $vehicles
@@ -106,24 +142,24 @@ function handleVehiclesRequest($method, $id, $db) {
             break;
             
         case 'POST':
-            // 检查用户是否有权限
+            // Check user permission
             if (!isAdmin()) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '没有权限执行此操作'
+                    'message' => 'Permission denied'
                 ]);
                 return;
             }
             
-            // 添加新车辆
+            // Add new vehicle
             $data = json_decode(file_get_contents('php://input'), true);
             
             if (!$data) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '无效的请求数据'
+                    'message' => 'Invalid request data'
                 ]);
                 return;
             }
@@ -133,25 +169,25 @@ function handleVehiclesRequest($method, $id, $db) {
                 http_response_code(201);
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '车辆已添加',
+                    'message' => 'Vehicle added successfully',
                     'data' => ['id' => $result]
                 ]);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '添加车辆失败'
+                    'message' => 'Failed to add vehicle'
                 ]);
             }
             break;
             
         case 'PUT':
-            // 检查用户是否有权限
+            // Check user permission
             if (!isAdmin()) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '没有权限执行此操作'
+                    'message' => 'Permission denied'
                 ]);
                 return;
             }
@@ -160,19 +196,19 @@ function handleVehiclesRequest($method, $id, $db) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '缺少车辆ID'
+                    'message' => 'Missing vehicle ID'
                 ]);
                 return;
             }
             
-            // 更新车辆信息
+            // Update vehicle information
             $data = json_decode(file_get_contents('php://input'), true);
             
             if (!$data) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '无效的请求数据'
+                    'message' => 'Invalid request data'
                 ]);
                 return;
             }
@@ -181,24 +217,24 @@ function handleVehiclesRequest($method, $id, $db) {
             if ($result) {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '车辆信息已更新'
+                    'message' => 'Vehicle updated successfully'
                 ]);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '更新车辆信息失败'
+                    'message' => 'Failed to update vehicle'
                 ]);
             }
             break;
             
         case 'DELETE':
-            // 检查用户是否有权限
+            // Check user permission
             if (!isAdmin()) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '没有权限执行此操作'
+                    'message' => 'Permission denied'
                 ]);
                 return;
             }
@@ -207,23 +243,23 @@ function handleVehiclesRequest($method, $id, $db) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '缺少车辆ID'
+                    'message' => 'Missing vehicle ID'
                 ]);
                 return;
             }
             
-            // 删除车辆
+            // Delete vehicle
             $result = $db->deleteVehicle($id);
             if ($result) {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '车辆已删除'
+                    'message' => 'Vehicle deleted successfully'
                 ]);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '删除车辆失败'
+                    'message' => 'Failed to delete vehicle'
                 ]);
             }
             break;
@@ -232,19 +268,19 @@ function handleVehiclesRequest($method, $id, $db) {
             http_response_code(405);
             echo json_encode([
                 'status' => 'error',
-                'message' => '不支持的请求方法'
+                'message' => 'Method not allowed'
             ]);
     }
 }
 
-// 处理预订相关请求
+// Handle reservation related requests
 function handleReservationsRequest($method, $id, $db) {
-    // 检查用户是否已登录
+    // Check if user is logged in
     if (!isLoggedIn()) {
         http_response_code(401);
         echo json_encode([
             'status' => 'error',
-            'message' => '请先登录'
+            'message' => 'Please log in first'
         ]);
         return;
     }
@@ -254,39 +290,82 @@ function handleReservationsRequest($method, $id, $db) {
     switch ($method) {
         case 'GET':
             if ($id) {
-                // 获取单个预订
-                $reservation = $db->getReservationById($id);
+                // Get single reservation details (supports reservation validation)
+                $vehicle_id = $_GET['vehicle_id'] ?? null;
                 
-                // 检查权限（只能查看自己的预订，除非是管理员）
-                if (!isAdmin() && $reservation['user_id'] != $currentUser['id']) {
-                    http_response_code(403);
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => '没有权限查看此预订'
-                    ]);
-                    return;
-                }
-                
-                if ($reservation) {
+                if ($vehicle_id) {
+                    // Validate reservation status (compatible with original verifyReservation function)
+                    $query = "SELECT 
+                              b.id, b.user_id, b.vehicle_id, b.start_date, b.end_date, b.expiry_time, b.status,
+                              u.username,
+                              v.battery_level, v.latitude, v.longitude
+                            FROM booking b
+                            JOIN users u ON b.user_id = u.id
+                            LEFT JOIN (
+                                SELECT id, battery_level, 
+                                       ST_Y(location) as latitude, 
+                                       ST_X(location) as longitude
+                                FROM Locations l1
+                                WHERE timestamp = (SELECT MAX(timestamp) FROM Locations l2 WHERE l2.id = l1.id)
+                            ) v ON b.vehicle_id = v.id
+                            WHERE b.vehicle_id = ? AND b.status = 'reserved'";
+                            
+                    $params = [$vehicle_id];
+                    
+                    if ($id !== 'verify') {
+                        $query .= " AND b.id = ?";
+                        $params[] = $id;
+                    } else {
+                        $query .= " AND (b.expiry_time IS NULL OR b.expiry_time > NOW())";
+                    }
+                    
+                    $result = $db->fetchOne($query, $params);
+                    
+                    $isValid = false;
+                    if ($result && isset($result['id']) && ($result['user_id'] == $_SESSION['user_id'] || !isset($_SESSION['user_id']))) {
+                        $isValid = true;
+                    }
+                    
                     echo json_encode([
                         'status' => 'success',
-                        'data' => $reservation
+                        'is_valid' => $isValid,
+                        'data' => $result ? $result : null
                     ]);
                 } else {
-                    http_response_code(404);
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => '未找到该预订'
-                    ]);
+                    // Get single reservation details
+                    $reservation = $db->getReservationById($id);
+                    
+                    // Check permission (only view own reservations unless admin)
+                    if (!isAdmin() && $reservation && $reservation['user_id'] != $currentUser['id']) {
+                        http_response_code(403);
+                        echo json_encode([
+                            'status' => 'error',
+                            'message' => 'Permission denied'
+                        ]);
+                        return;
+                    }
+                    
+                    if ($reservation) {
+                        echo json_encode([
+                            'status' => 'success',
+                            'data' => $reservation
+                        ]);
+                    } else {
+                        http_response_code(404);
+                        echo json_encode([
+                            'status' => 'error',
+                            'message' => 'Reservation not found'
+                        ]);
+                    }
                 }
             } else {
-                // 获取用户的所有预订
+                // Get all user reservations (compatible with original getUserReservations function)
                 if (isAdmin() && isset($_GET['all'])) {
-                    // 管理员可以查看所有预订
+                    // Admin can view all reservations
                     $reservations = $db->getAllReservations();
                 } else {
-                    // 普通用户只能查看自己的预订
-                    $reservations = $db->getUserReservations($currentUser['id']);
+                    // Normal user can only view their own reservations
+                    $reservations = $db->getUserReservationHistory($currentUser['id']);
                 }
                 
                 echo json_encode([
@@ -297,34 +376,103 @@ function handleReservationsRequest($method, $id, $db) {
             break;
             
         case 'POST':
-            // 创建新预订
+            // Create new reservation (compatible with original reserveScooter function)
             $data = json_decode(file_get_contents('php://input'), true);
             
-            if (!$data) {
+            if (!$data || !isset($data['vehicle_id'])) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '无效的请求数据'
+                    'message' => 'Missing vehicle_id parameter'
                 ]);
                 return;
             }
             
-            // 设置用户ID
-            $data['user_id'] = $currentUser['id'];
+            $vehicle_id = $data['vehicle_id'];
             
-            $result = $db->createReservation($data);
-            if ($result) {
+            try {
+                // Check if vehicle is available
+                $vehicleStatus = $db->getVehicleStatus($vehicle_id);
+                
+                if (!$vehicleStatus) {
+                    throw new Exception('Vehicle not found');
+                }
+                
+                if ($vehicleStatus['availability'] != 1) {
+                    throw new Exception('Vehicle is not available for reservation');
+                }
+                
+                if (isset($vehicleStatus['battery_level']) && $vehicleStatus['battery_level'] < 15) {
+                    throw new Exception('Vehicle battery too low for reservation');
+                }
+                
+                // Check if user has an active reservation
+                $existingBooking = $db->getUserActiveReservation($currentUser['id']);
+                
+                if ($existingBooking) {
+                    throw new Exception('You already have an active reservation. Please cancel it first.');
+                }
+                
+                // Determine if simple or advanced booking
+                $isAdvancedBooking = isset($data['start_time']) && isset($data['end_time']);
+                
+                // Set reservation time
+                $now = new DateTime();
+                
+                if ($isAdvancedBooking) {
+                    // Advanced booking - use specified start and end times
+                    $start_time = new DateTime($data['start_time']);
+                    $end_time = new DateTime($data['end_time']);
+                    
+                    // Validate time parameters
+                    if ($start_time >= $end_time) {
+                        throw new Exception('End time must be after start time');
+                    }
+                    
+                    // Check for time conflicts
+                    $conflictBooking = $db->getBookingConflicts($vehicle_id, $data['start_time'], $data['end_time']);
+                    if ($conflictBooking) {
+                        throw new Exception('This time slot is already booked');
+                    }
+                    
+                    // For advanced booking, set expiry_time to NULL
+                    $expiry_time = null;
+                } else {
+                    // Simple booking - start from current time
+                    $start_time = $now;
+                    $end_time = (clone $now)->modify('+30 minutes');
+                    
+                    // Reservation expiry time (15 minutes later)
+                    $expiry_time = (clone $now)->modify('+15 minutes');
+                }
+                
+                // Create reservation
+                $booking_id = $db->createReservation(
+                    $currentUser['id'],
+                    $vehicle_id,
+                    $start_time->format('Y-m-d H:i:s'),
+                    $end_time->format('Y-m-d H:i:s'),
+                    $expiry_time ? $expiry_time->format('Y-m-d H:i:s') : null
+                );
+                
+                // Return success response
                 http_response_code(201);
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '预订已创建',
-                    'data' => ['id' => $result]
+                    'message' => 'Vehicle reserved successfully',
+                    'data' => [
+                        'booking_id' => $booking_id,
+                        'vehicle_id' => $vehicle_id,
+                        'start_time' => $start_time->format('Y-m-d H:i:s'),
+                        'end_time' => $end_time->format('Y-m-d H:i:s'),
+                        'expiry_time' => $expiry_time ? $expiry_time->format('Y-m-d H:i:s') : null
+                    ]
                 ]);
-            } else {
-                http_response_code(500);
+            } catch (Exception $e) {
+                http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '创建预订失败'
+                    'message' => $e->getMessage()
                 ]);
             }
             break;
@@ -334,18 +482,18 @@ function handleReservationsRequest($method, $id, $db) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '缺少预订ID'
+                    'message' => 'Missing reservation ID'
                 ]);
                 return;
             }
             
-            // 获取预订信息，检查权限
+            // Get reservation information, check permission
             $reservation = $db->getReservationById($id);
             if (!$reservation) {
                 http_response_code(404);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '未找到该预订'
+                    'message' => 'Reservation not found'
                 ]);
                 return;
             }
@@ -354,19 +502,19 @@ function handleReservationsRequest($method, $id, $db) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '没有权限修改此预订'
+                    'message' => 'Permission denied'
                 ]);
                 return;
             }
             
-            // 更新预订
+            // Update reservation
             $data = json_decode(file_get_contents('php://input'), true);
             
             if (!$data) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '无效的请求数据'
+                    'message' => 'Invalid request data'
                 ]);
                 return;
             }
@@ -375,13 +523,13 @@ function handleReservationsRequest($method, $id, $db) {
             if ($result) {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '预订已更新'
+                    'message' => 'Reservation updated successfully'
                 ]);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '更新预订失败'
+                    'message' => 'Failed to update reservation'
                 ]);
             }
             break;
@@ -391,18 +539,18 @@ function handleReservationsRequest($method, $id, $db) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '缺少预订ID'
+                    'message' => 'Missing reservation ID'
                 ]);
                 return;
             }
             
-            // 获取预订信息，检查权限
+            // Get reservation information, check permission
             $reservation = $db->getReservationById($id);
             if (!$reservation) {
                 http_response_code(404);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '未找到该预订'
+                    'message' => 'Reservation not found'
                 ]);
                 return;
             }
@@ -411,23 +559,40 @@ function handleReservationsRequest($method, $id, $db) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '没有权限取消此预订'
+                    'message' => 'Permission denied'
                 ]);
                 return;
             }
             
-            // 取消预订
-            $result = $db->cancelReservation($id, $reservation['vehicle_id']);
-            if ($result) {
-                echo json_encode([
-                    'status' => 'success',
-                    'message' => '预订已取消'
-                ]);
-            } else {
-                http_response_code(500);
+            // Cancel reservation (compatible with original cancelReservation function)
+            try {
+                // Get user's active reservation
+                $activeBooking = $db->getUserActiveReservation($currentUser['id']);
+                
+                if (!$activeBooking || $activeBooking['vehicle_id'] != $reservation['vehicle_id']) {
+                    throw new Exception('No active reservation found for this vehicle');
+                }
+                
+                // Cancel reservation
+                $result = $db->cancelReservation($activeBooking['id'], $reservation['vehicle_id']);
+                
+                if ($result) {
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Reservation cancelled successfully'
+                    ]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Failed to cancel reservation'
+                    ]);
+                }
+            } catch (Exception $e) {
+                http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '取消预订失败'
+                    'message' => $e->getMessage()
                 ]);
             }
             break;
@@ -436,16 +601,16 @@ function handleReservationsRequest($method, $id, $db) {
             http_response_code(405);
             echo json_encode([
                 'status' => 'error',
-                'message' => '不支持的请求方法'
+                'message' => 'Method not allowed'
             ]);
     }
 }
 
-// 处理位置相关请求
+// Handle location related requests
 function handleLocationsRequest($method, $id, $db) {
     switch ($method) {
         case 'GET':
-            // 获取车辆位置
+            // Get vehicle locations
             $locations = $db->getVehicleLocations();
             echo json_encode([
                 'status' => 'success',
@@ -454,24 +619,24 @@ function handleLocationsRequest($method, $id, $db) {
             break;
             
         case 'POST':
-            // 检查权限
+            // Check permission
             if (!isLoggedIn()) {
                 http_response_code(401);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '请先登录'
+                    'message' => 'Please log in first'
                 ]);
                 return;
             }
             
-            // 上传车辆位置
+            // Upload vehicle location
             $data = json_decode(file_get_contents('php://input'), true);
             
             if (!$data) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '无效的请求数据'
+                    'message' => 'Invalid request data'
                 ]);
                 return;
             }
@@ -480,13 +645,13 @@ function handleLocationsRequest($method, $id, $db) {
             if ($result) {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '位置已更新'
+                    'message' => 'Location updated successfully'
                 ]);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '更新位置失败'
+                    'message' => 'Failed to update location'
                 ]);
             }
             break;
@@ -495,19 +660,19 @@ function handleLocationsRequest($method, $id, $db) {
             http_response_code(405);
             echo json_encode([
                 'status' => 'error',
-                'message' => '不支持的请求方法'
+                'message' => 'Method not allowed'
             ]);
     }
 }
 
-// 处理用户相关请求
+// Handle user related requests
 function handleUsersRequest($method, $id, $db) {
-    // 检查权限
+    // Check permission
     if (!isLoggedIn()) {
         http_response_code(401);
         echo json_encode([
             'status' => 'error',
-            'message' => '请先登录'
+            'message' => 'Please log in first'
         ]);
         return;
     }
@@ -517,20 +682,20 @@ function handleUsersRequest($method, $id, $db) {
     switch ($method) {
         case 'GET':
             if ($id) {
-                // 只能查看自己的信息，除非是管理员
+                // Only view own information unless admin
                 if (!isAdmin() && $id != $currentUser['id']) {
                     http_response_code(403);
                     echo json_encode([
                         'status' => 'error',
-                        'message' => '没有权限查看此用户信息'
+                        'message' => 'Permission denied'
                     ]);
                     return;
                 }
                 
-                // 获取单个用户
+                // Get single user
                 $user = $db->getUserById($id);
                 if ($user) {
-                    // 移除敏感信息
+                    // Remove sensitive information
                     unset($user['password']);
                     echo json_encode([
                         'status' => 'success',
@@ -540,22 +705,22 @@ function handleUsersRequest($method, $id, $db) {
                     http_response_code(404);
                     echo json_encode([
                         'status' => 'error',
-                        'message' => '未找到该用户'
+                        'message' => 'User not found'
                     ]);
                 }
             } else {
-                // 获取用户列表（仅管理员）
+                // Get user list (admin only)
                 if (!isAdmin()) {
                     http_response_code(403);
                     echo json_encode([
                         'status' => 'error',
-                        'message' => '没有权限查看用户列表'
+                        'message' => 'Permission denied'
                     ]);
                     return;
                 }
                 
                 $users = $db->getAllUsers();
-                // 移除敏感信息
+                // Remove sensitive information
                 foreach ($users as &$user) {
                     unset($user['password']);
                 }
@@ -572,29 +737,29 @@ function handleUsersRequest($method, $id, $db) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '缺少用户ID'
+                    'message' => 'Missing user ID'
                 ]);
                 return;
             }
             
-            // 只能修改自己的信息，除非是管理员
+            // Only modify own information unless admin
             if (!isAdmin() && $id != $currentUser['id']) {
                 http_response_code(403);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '没有权限修改此用户信息'
+                    'message' => 'Permission denied'
                 ]);
                 return;
             }
             
-            // 更新用户信息
+            // Update user information
             $data = json_decode(file_get_contents('php://input'), true);
             
             if (!$data) {
                 http_response_code(400);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '无效的请求数据'
+                    'message' => 'Invalid request data'
                 ]);
                 return;
             }
@@ -603,13 +768,13 @@ function handleUsersRequest($method, $id, $db) {
             if ($result) {
                 echo json_encode([
                     'status' => 'success',
-                    'message' => '用户信息已更新'
+                    'message' => 'User information updated successfully'
                 ]);
             } else {
                 http_response_code(500);
                 echo json_encode([
                     'status' => 'error',
-                    'message' => '更新用户信息失败'
+                    'message' => 'Failed to update user information'
                 ]);
             }
             break;
@@ -618,8 +783,212 @@ function handleUsersRequest($method, $id, $db) {
             http_response_code(405);
             echo json_encode([
                 'status' => 'error',
-                'message' => '不支持的请求方法'
+                'message' => 'Method not allowed'
             ]);
+    }
+}
+
+// Handle trip related requests (New)
+function handleTripsRequest($method, $id, $db) {
+    // Check if user is logged in
+    if (!isLoggedIn()) {
+        http_response_code(401);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Please log in first'
+        ]);
+        return;
+    }
+    
+    $currentUser = getCurrentUser();
+    
+    switch ($method) {
+        case 'POST':
+            // Start trip (compatible with original startTrip function)
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($data['booking_id']) || !isset($data['vehicle_id'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Missing required parameters: booking_id and vehicle_id'
+                ]);
+                return;
+            }
+            
+            $booking_id = $data['booking_id'];
+            $vehicle_id = $data['vehicle_id'];
+            
+            try {
+                // Validate if reservation belongs to current user
+                $booking = $db->getBookingDetails($booking_id);
+                
+                if (!$booking || $booking['user_id'] != $currentUser['id']) {
+                    throw new Exception('Invalid reservation');
+                }
+                
+                if ($booking['status'] != 'reserved') {
+                    throw new Exception('This reservation cannot be started in its current state');
+                }
+                
+                // Start trip
+                $result = $db->startVehicleOrder($booking_id, $vehicle_id);
+                
+                if ($result) {
+                    http_response_code(201);
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Trip started successfully',
+                        'data' => [
+                            'booking_id' => $booking_id,
+                            'vehicle_id' => $vehicle_id,
+                            'status' => 'in_progress'
+                        ]
+                    ]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Failed to start trip'
+                    ]);
+                }
+            } catch (Exception $e) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+            break;
+            
+        case 'PUT':
+            // End trip (compatible with original endTrip function)
+            if (!$id) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Missing trip ID (booking_id)'
+                ]);
+                return;
+            }
+            
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($data['vehicle_id'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Missing vehicle_id parameter'
+                ]);
+                return;
+            }
+            
+            $booking_id = $id;
+            $vehicle_id = $data['vehicle_id'];
+            
+            try {
+                // Validate if reservation belongs to current user
+                $booking = $db->getBookingDetails($booking_id);
+                
+                if (!$booking || $booking['user_id'] != $currentUser['id']) {
+                    throw new Exception('Invalid reservation');
+                }
+                
+                if ($booking['status'] != 'in_progress') {
+                    throw new Exception('This trip cannot be completed in its current state');
+                }
+                
+                // End trip
+                $result = $db->completeVehicleOrder($booking_id, $vehicle_id);
+                
+                if ($result) {
+                    echo json_encode([
+                        'status' => 'success',
+                        'message' => 'Trip completed successfully',
+                        'data' => [
+                            'booking_id' => $booking_id,
+                            'vehicle_id' => $vehicle_id,
+                            'status' => 'completed'
+                        ]
+                    ]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Failed to complete trip'
+                    ]);
+                }
+            } catch (Exception $e) {
+                http_response_code(400);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+            break;
+            
+        default:
+            http_response_code(405);
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Method not allowed'
+            ]);
+    }
+}
+
+// Handle time slot related requests (New)
+function handleTimeSlotsRequest($method, $db) {
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Method not allowed'
+        ]);
+        return;
+    }
+    
+    // Get available time slots for vehicle (compatible with original getAvailableTimeSlots function)
+    if (!isset($_GET['vehicle_id']) || !isset($_GET['date'])) {
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Missing required parameters: vehicle_id and date'
+        ]);
+        return;
+    }
+    
+    $vehicle_id = $_GET['vehicle_id'];
+    $date = $_GET['date'];
+    
+    // Validate date format
+    if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date)) {
+        http_response_code(400);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Invalid date format. Use YYYY-MM-DD'
+        ]);
+        return;
+    }
+    
+    try {
+        // Get time slots
+        $result = $db->getAvailableTimeSlots($vehicle_id, $date);
+        
+        echo json_encode([
+            'status' => 'success',
+            'data' => [
+                'vehicle_id' => $vehicle_id,
+                'date' => $date,
+                'time_slots' => $result['timeSlots'],
+                'booked_slots' => $result['bookedSlots']
+            ]
+        ]);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Failed to get available time slots: ' . $e->getMessage()
+        ]);
     }
 }
 ?> 

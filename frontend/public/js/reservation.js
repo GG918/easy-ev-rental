@@ -84,7 +84,7 @@ const ReservationService = {
         }
     },
     
-    // Reserve vehicle - Simplified logic flow, ensure direct reservation
+    // Reserve vehicle - Updated to RESTful API
     async reserveScooter(scooterId, startTime, endTime) {
         try {
             // 1. Verify user authentication
@@ -122,7 +122,7 @@ const ReservationService = {
             
             // 3. Prepare request data
             const isAdvancedBooking = startTime && endTime;
-            const requestData = { scooter_id: scooterId };
+            const requestData = { vehicle_id: scooterId };
             
             // If advanced booking, add time information
             if (isAdvancedBooking) {
@@ -133,8 +133,8 @@ const ReservationService = {
             // Send reservation request
             console.log('Sending reservation request:', requestData);
             
-            // 4. Send reservation request
-            const response = await fetch('../../backend/api/legacy_api.php?action=reserveScooter', {
+            // 4. Send reservation request (RESTful POST to /reservations)
+            const response = await fetch('/web/backend/api/api.php/reservations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestData)
@@ -143,26 +143,23 @@ const ReservationService = {
             this.hideLoadingIndicator(loadingIndicator);
             
             // 5. Process response
-            const data = await UtilService.api.handleResponse(
-                response, 
-                { success: false, message: 'Server returned an error' },
-                'Reservation request failed'
-            );
+            const data = await this.handleApiResponse(response, 'Reservation request failed');
             
-            if (!data.success) {
+            if (data.status !== 'success') {
                 throw new Error(data.message || 'Reservation failed');
             }
             
             // 6. Update state
             // Create reservation object
-            const expiryTime = new Date(data.expiry_time || data.end_time).getTime();
+            const reservationData = data.data;
+            const expiryTime = new Date(reservationData.expiry_time || reservationData.end_time).getTime();
             const reservation = {
                 active: true,
                 scooterId: scooterId,
                 expiryTime: expiryTime,
-                startTime: data.start_time,
-                endTime: data.end_time,
-                bookingId: data.booking_id,
+                startTime: reservationData.start_time,
+                endTime: reservationData.end_time,
+                bookingId: reservationData.booking_id,
                 timerInterval: null,
                 scooterData: vehicleData,
                 isAdvancedBooking: isAdvancedBooking,
@@ -200,21 +197,17 @@ const ReservationService = {
         }
     },
     
-    // Verify vehicle status - Simplified to handle only API call and error handling
+    // Verify vehicle status - Updated to RESTful API
     async verifyVehicleStatus(scooterId) {
         try {
-            const response = await fetch(`../../backend/api/legacy_api.php?action=verifyVehicleStatus&id=${scooterId}`);
-            const data = await UtilService.api.handleResponse(
-                response,
-                { success: false, message: 'Vehicle status check failed' },
-                'Unable to verify vehicle status'
-            );
+            const response = await fetch(`/web/backend/api/api.php/vehicles/${scooterId}`);
+            const data = await this.handleApiResponse(response, 'Unable to verify vehicle status');
             
-            if (!data.success) {
+            if (data.status !== 'success') {
                 throw new Error(data.message || 'Unable to verify vehicle status');
             }
             
-            return data.vehicle;
+            return data.data;
         } catch (error) {
             console.error('Failed to verify vehicle status:', error);
             throw error;
@@ -274,19 +267,16 @@ const ReservationService = {
         }
     },
 
-    // Verify reservation status
+    // Verify reservation status - Updated to RESTful API
     async verifyReservationWithServer(scooterId, bookingId) {
         try {
-            let url = `../../backend/api/legacy_api.php?action=verifyReservation&id=${scooterId}`;
-            if (bookingId) url += `&booking_id=${bookingId}`;
+            let url = `/web/backend/api/api.php/reservations/verify?vehicle_id=${scooterId}`;
+            if (bookingId) url = `/web/backend/api/api.php/reservations/${bookingId}?vehicle_id=${scooterId}`;
             
             // Get reservation status
             const response = await fetch(url);
-            const data = await UtilService.api.handleResponse(
-                response, 
-                { is_valid: true }, 
-                'Unable to verify reservation status'
-            );
+            const data = await this.handleApiResponse(response, 'Unable to verify reservation status');
+            
             return data.is_valid === true;
         } catch (error) {
             console.error('Failed to verify reservation status:', error);
@@ -295,18 +285,14 @@ const ReservationService = {
         }
     },
 
-    // Get user reservation history
+    // Get user reservation history - Updated to RESTful API
     async getUserReservations() {
         try {
-            const response = await fetch('../../backend/api/legacy_api.php?action=getUserReservations');
-            const data = await UtilService.api.handleResponse(
-                response,
-                { success: false, reservations: [] },
-                'Failed to get reservation history'
-            );
+            const response = await fetch('/web/backend/api/api.php/reservations');
+            const data = await this.handleApiResponse(response, 'Failed to get reservation history');
             
             // Process reservation data to ensure compatibility
-            const reservations = (data.reservations || []).map(reservation => {
+            const reservations = (data.data || []).map(reservation => {
                 return {
                     ...reservation,
                     // Ensure expiry_time has value, even if NULL in database
@@ -331,7 +317,7 @@ const ReservationService = {
         }
     },
 
-    // Get available time slots
+    // Get available time slots - Updated to RESTful API
     async getAvailableTimeSlots(scooterId, date) {
         if (!scooterId || !date) {
             console.error('Missing required parameters:', { scooterId, date });
@@ -350,38 +336,54 @@ const ReservationService = {
             throw new Error('Invalid date format. Please use YYYY-MM-DD');
         }
 
-        // Generate default time slots
-        const timeSlots = [];
-        const startHour = 9; // Start at 9 AM
-        const endHour = 21;  // End at 9 PM
-        const now = new Date();
-        const selectedDate = new Date(date);
-        const isToday = selectedDate.toDateString() === now.toDateString();
-
-        for (let hour = startHour; hour < endHour; hour++) {
-            for (let minute = 0; minute < 60; minute += 30) {
-                // If today, skip past time slots
-                if (isToday) {
-                    const slotTime = new Date(selectedDate);
-                    slotTime.setHours(hour, minute, 0);
-                    if (slotTime <= now) continue;
-                }
-
-                const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                const endHourMin = minute === 30 ? [(hour + 1), 0] : [hour, 30];
-                const endTime = `${endHourMin[0].toString().padStart(2, '0')}:${endHourMin[1].toString().padStart(2, '0')}`;
-
-                timeSlots.push({
-                    start: startTime,
-                    end: endTime,
-                    available: true, // Default available
-                    start_value: `${date} ${startTime}:00`,
-                    end_value: `${date} ${endTime}:00`
-                });
+        try {
+            const response = await fetch(`/web/backend/api/api.php/timeslots?vehicle_id=${scooterId}&date=${date}`);
+            const data = await this.handleApiResponse(response, 'Failed to get available time slots');
+            
+            if (data.status === 'success') {
+                return {
+                    timeSlots: data.data.time_slots || [],
+                    bookedSlots: data.data.booked_slots || []
+                };
+            } else {
+                throw new Error(data.message || 'Failed to get time slots');
             }
-        }
+        } catch (error) {
+            console.error('Failed to get available time slots:', error);
+            
+            // Generate default time slots as fallback
+            const timeSlots = [];
+            const startHour = 9; // Start at 9 AM
+            const endHour = 21;  // End at 9 PM
+            const now = new Date();
+            const selectedDate = new Date(date);
+            const isToday = selectedDate.toDateString() === now.toDateString();
 
-        return timeSlots;
+            for (let hour = startHour; hour < endHour; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    // If today, skip past time slots
+                    if (isToday) {
+                        const slotTime = new Date(selectedDate);
+                        slotTime.setHours(hour, minute, 0);
+                        if (slotTime <= now) continue;
+                    }
+
+                    const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    const endHourMin = minute === 30 ? [(hour + 1), 0] : [hour, 30];
+                    const endTime = `${endHourMin[0].toString().padStart(2, '0')}:${endHourMin[1].toString().padStart(2, '0')}`;
+
+                    timeSlots.push({
+                        start: startTime,
+                        end: endTime,
+                        available: true, // Default available
+                        start_value: `${date} ${startTime}:00`,
+                        end_value: `${date} ${endTime}:00`
+                    });
+                }
+            }
+
+            return { timeSlots, bookedSlots: [] };
+        }
     },
 
     // Update reservation UI - Improved, display different content based on status
@@ -511,27 +513,24 @@ const ReservationService = {
         );
     },
 
-    // Cancel reservation - Simplified process
+    // Cancel reservation - Updated to RESTful API
     async cancelReservation() {
         if (!window.state || !window.state.reservation.active) return false;
         
         try {
             const loadingIndicator = this.showLoadingIndicator('Cancelling reservation...');
-            const response = await fetch('../../backend/api/legacy_api.php?action=cancelReservation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ scooter_id: window.state.reservation.scooterId })
+            
+            // Use RESTful DELETE to cancel reservation
+            const response = await fetch(`/web/backend/api/api.php/reservations/${window.state.reservation.bookingId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
             });
             
             this.hideLoadingIndicator(loadingIndicator);
             
-            const data = await UtilService.api.handleResponse(
-                response,
-                { success: false, message: 'Failed to cancel reservation' },
-                'Cancellation request failed'
-            );
+            const data = await this.handleApiResponse(response, 'Cancellation request failed');
             
-            if (!data.success) {
+            if (data.status !== 'success') {
                 throw new Error(data.message || 'Failed to cancel reservation');
             }
             
@@ -597,26 +596,23 @@ const ReservationService = {
         return true;
     },
 
-    // Start trip
+    // Start trip - Updated to RESTful API
     async startTrip(bookingId, scooterId) {
         try {
             const loadingIndicator = this.showLoadingIndicator('Starting trip...');
             
-            const response = await fetch('../../backend/api/legacy_api.php?action=startTrip', {
+            // Use RESTful POST to /trips
+            const response = await fetch('/web/backend/api/api.php/trips', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ booking_id: bookingId, scooter_id: scooterId })
+                body: JSON.stringify({ booking_id: bookingId, vehicle_id: scooterId })
             });
             
             this.hideLoadingIndicator(loadingIndicator);
             
-            const data = await UtilService.api.handleResponse(
-                response,
-                { success: false, message: 'Failed to start trip' },
-                'Trip start request failed'
-            );
+            const data = await this.handleApiResponse(response, 'Trip start request failed');
             
-            if (!data.success) {
+            if (data.status !== 'success') {
                 throw new Error(data.message || 'Failed to start trip');
             }
             
@@ -642,26 +638,23 @@ const ReservationService = {
         }
     },
     
-    // End trip
+    // End trip - Updated to RESTful API
     async endTrip(bookingId, scooterId) {
         try {
             const loadingIndicator = this.showLoadingIndicator('Completing trip...');
             
-            const response = await fetch('../../backend/api/legacy_api.php?action=endTrip', {
-                method: 'POST',
+            // Use RESTful PUT to /trips/{id}
+            const response = await fetch(`/web/backend/api/api.php/trips/${bookingId}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ booking_id: bookingId, scooter_id: scooterId })
+                body: JSON.stringify({ vehicle_id: scooterId })
             });
             
             this.hideLoadingIndicator(loadingIndicator);
             
-            const data = await UtilService.api.handleResponse(
-                response,
-                { success: false, message: 'Failed to complete trip' },
-                'Trip end request failed'
-            );
+            const data = await this.handleApiResponse(response, 'Trip end request failed');
             
-            if (!data.success) {
+            if (data.status !== 'success') {
                 throw new Error(data.message || 'Failed to complete trip');
             }
             
@@ -682,6 +675,17 @@ const ReservationService = {
             this.showErrorNotification('Failed to Complete Trip', error.message);
             return false;
         }
+    },
+
+    // API response handler - Centralized response handling
+    async handleApiResponse(response, defaultErrorMessage) {
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText || defaultErrorMessage}`);
+        }
+        
+        const data = await response.json();
+        return data;
     }
 };
 

@@ -79,9 +79,7 @@ header {
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
-
-/* Remove conflicting h1 style */
-/* h1 {
+h1 {
     font-size: 36px;
     text-align: center;
     padding: 175px;
@@ -89,8 +87,17 @@ header {
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
-} */
+}
 
+/* Modify hero section to fill the entire middle area */
+.hero-section {
+    width: 100%;
+    height: calc(100vh - 80px - 40px); /* Subtract the height of the header and footer */
+    background-image: url('../images/IMG_2246.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
 .container {
     text-align: center;
     padding: 20px;
@@ -377,16 +384,6 @@ footer {
     padding: 5px;
 }
 
-/* Modify hero section to fill the entire middle area, remove text part */
-.hero-section {
-    width: 100%;
-    height: calc(100vh - 80px - 40px); /* Subtract the height of the header and footer */
-    background-image: url('../images/IMG_2246.jpg');
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: cover;
-}
-
 /* Navigation menu Log Maintenance styles */
 .header ul li a[onclick] {
     cursor: pointer;
@@ -416,60 +413,4 @@ footer {
 .modal-register-link a:hover {
     color: #2196F3;
     text-decoration: underline;
-}
-
-/* Main content and hero styles */
-.main-content {
-    position: relative;
-    width: 100%;
-    height: calc(100vh - 75px - 40px); /* Subtract header and footer heights */
-    overflow: hidden;
-}
-
-.hero {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; /* Align content to bottom */
-    align-items: center;
-    background-image: url('../images/IMG_2246.jpg');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    text-align: center;
-    color: white;
-    padding-bottom: 50px; /* Add bottom padding for text */
-}
-
-.hero h1 {
-    font-size: 36px;
-    margin-bottom: 10px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-    background: none;
-    padding: 0;
-}
-
-.hero p {
-    font-size: 18px;
-    margin-bottom: 20px;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-}
-
-.cta-button {
-    display: inline-block;
-    padding: 12px 24px;
-    background-color: rgb(116, 33, 55);
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    font-weight: bold;
-    transition: all 0.3s ease;
-}
-
-.cta-button:hover {
-    background-color: rgb(231, 124, 147);
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }

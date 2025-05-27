@@ -14,16 +14,16 @@ const char* password   = "YOUR_WIFI_PASSWORD"; // Replace with your WiFi passwor
 const char* serverHost = "example.com";        // Replace with your server domain
 const int   serverPort = 80;                   // Default HTTP port (use 443 for HTTPS)
 
-// —— defalut value —— 
+// —— default value —— 
 const char* deviceId    = "1";                 // Unique device identifier
 const int    batteryLevelDefault = 100;
 
 // —— upload delay —— 
-const unsigned long reportInterval = 60UL * 1000;
+const unsigned long reportInterval = 60UL * 1000; // Time interval for reporting data (e.g., every 60 seconds)
 unsigned long lastReportTime = 0;
 
 // —— GPS & matrix —— 
-SoftwareSerial gpsSerial(3, 4); // D3←TX, D4→RX
+SoftwareSerial gpsSerial(3, 4); // D3<-TX, D4->RX (GPS Serial: D3 is TX, D4 is RX)
 TinyGPSPlus gps;
 ArduinoLEDMatrix matrix;
 bool hasReceivedNMEA = false;
@@ -39,7 +39,7 @@ void setup() {
   Serial.begin(115200);
   while (!Serial);
 
-  // GPS initialisation
+  // GPS initialization
   gpsSerial.begin(115200);
   matrix.begin();
   Serial.println("🚀 GPS + LED Matrix + WiFi uploader starting...");
@@ -64,7 +64,7 @@ void loop() {
 
   unsigned long now = millis();
 
-  // 2) 每 displayInterval 更新一次屏显与上传
+  // 2) Update display and upload every displayInterval
   if (now - lastDisplayTime >= displayInterval) {
     lastDisplayTime = now;
 
@@ -85,7 +85,7 @@ void loop() {
 
       showSymbol("G", 0x00FF00);
 
-      // 上传
+      // Upload data
       if (now - lastReportTime >= reportInterval) {
         lastReportTime = now;
         sendToServer(deviceId, lat, lng, speed_mph, batteryLevelDefault);
